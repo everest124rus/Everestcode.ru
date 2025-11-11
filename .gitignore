@@ -1,0 +1,70 @@
+# Зависимости
+node_modules/
+.pnp
+.pnp.js
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Сборка
+build/
+dist/
+*.log
+
+# Окружение
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+config.env
+
+# База данных
+*.sqlite
+*.db
+database.sqlite
+everest-ai-editor/database.sqlite
+everest-ai-editor/prisma/dev.db
+
+# Временные файлы
+temp/
+*.tmp
+*.temp
+everest-ai-editor/temp/
+everest-ai-editor/server.log
+
+# Загруженные файлы
+uploads/
+everest-ai-editor/uploads/
+
+# Sandbox (пользовательские файлы)
+sandbox/
+everest-ai-editor/sandbox/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Prisma сгенерированные файлы
+everest-ai-editor/src/generated/
+
+# Сертификаты (если содержат секреты)
+# everest-ai-editor/certs/
+
+# Другие
+*.zip
+*.tar.gz
+phppgadmin.tar.gz
+

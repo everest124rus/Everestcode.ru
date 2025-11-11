@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://everestcode.ru/sitemap.xml

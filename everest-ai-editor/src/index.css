@@ -1,0 +1,283 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Оптимизированные стили для слабых компьютеров */
+* {
+  will-change: auto;
+}
+
+/* Выделение кнопок с приятными эффектами */
+button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Содержимое кнопки поверх волны */
+button > * {
+  position: relative;
+  z-index: 1;
+}
+
+button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Стили для иконок на главном экране - всегда белые */
+div[class*="sc-"] svg,
+div[class*="sc-"] .lucide,
+div[class*="sc-"] svg *,
+div[class*="sc-"] .lucide * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+/* Стили для текста на главном экране - всегда белый */
+div[class*="sc-"] h2,
+div[class*="sc-"] p,
+div[class*="sc-"] span {
+  color: #ffffff !important;
+}
+
+/* Стили для кнопок на главном экране - всегда белый текст */
+div[class*="sc-"] button {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Стили для модальных окон - белый текст */
+div[class*="Modal"], 
+div[class*="glass-modal"],
+.glass-modal-overlay,
+.glass-modal-content,
+.glass-modal-header,
+.glass-modal-title,
+.glass-modal-input,
+.glass-modal-button {
+  color: #ffffff !important;
+}
+
+/* Стили для кнопок в модальных окнах - максимальная специфичность */
+button.glass-modal-button,
+button.glass-modal-button-primary,
+button.glass-modal-button-secondary,
+.glass-modal-button,
+.glass-modal-button-primary,
+.glass-modal-button-secondary {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+button.glass-modal-button-primary,
+.glass-modal-button-primary {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Дополнительные стили для переопределения */
+div[class*="glass-modal"] button,
+div[class*="glass-modal"] button *,
+div[class*="glass-modal"] .glass-modal-button,
+div[class*="glass-modal"] .glass-modal-button * {
+  color: #ffffff !important;
+}
+
+/* Стили для input в модальных окнах */
+.glass-modal-input {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.glass-modal-input::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Стили для сайдбара - адаптивные */
+.sc-bRKDuR {
+  background: rgba(30, 30, 30, 0.95) !important;
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Стили для элементов сайдбара */
+.sc-bRKDuR * { color: #ffffff !important; }
+
+/* Жесткое переопределение для сайдбара по классу-метке */
+.sidebar-root, .sidebar-root * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.sidebar-root svg, .sidebar-root .lucide,
+.sidebar-root svg *, .sidebar-root .lucide * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Стили для кнопок в заголовке сайдбара */
+.sc-gLaqbQ {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease;
+}
+
+.sc-gLaqbQ:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.05);
+}
+
+/* Стили для элементов в редакторе - адаптивные */
+div[class*="sc-"]:not([class*="Creator"]):not([class*="Modal"]):not([class*="glass-modal"]):not([class*="glass-modal-overlay"]):not([class*="glass-modal-content"]) {
+  color: #000000 !important;
+}
+
+[data-theme="dark"] div[class*="sc-"]:not([class*="Creator"]):not([class*="Modal"]):not([class*="glass-modal"]):not([class*="glass-modal-overlay"]):not([class*="glass-modal-content"]),
+.dark-theme div[class*="sc-"]:not([class*="Creator"]):not([class*="Modal"]):not([class*="glass-modal"]):not([class*="glass-modal-overlay"]):not([class*="glass-modal-content"]) {
+  color: #ffffff !important;
+}
+
+/* Жесткое переопределение для правой панели AI */
+.ai-panel-root, .ai-panel-root * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Стили для начального экрана - всегда белый текст */
+div[class*="Creator"] {
+  color: #ffffff !important;
+}
+
+div[class*="Creator"] h2,
+div[class*="Creator"] p,
+div[class*="Creator"] span {
+  color: #ffffff !important;
+}
+
+div[class*="Creator"] button {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+div[class*="Creator"] svg,
+div[class*="Creator"] .lucide,
+div[class*="Creator"] svg *,
+div[class*="Creator"] .lucide * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+/* КРИТИЧЕСКИ ВАЖНЫЕ СТИЛИ ДЛЯ КНОПОК В МОДАЛЬНЫХ ОКНАХ */
+/* Максимальная специфичность для переопределения любых стилей */
+button[class*="glass-modal"],
+button[class*="glass-modal"] *,
+.glass-modal-overlay button,
+.glass-modal-overlay button *,
+.glass-modal-content button,
+.glass-modal-content button * {
+  color: #ffffff !important;
+}
+
+/* Дополнительные селекторы для кнопок */
+div[class*="glass-modal"] button,
+div[class*="glass-modal"] button span,
+div[class*="glass-modal"] button div,
+div[class*="glass-modal"] button p {
+  color: #ffffff !important;
+}
+
+/* ФИНАЛЬНЫЕ СТИЛИ ДЛЯ ПЕРЕОПРЕДЕЛЕНИЯ ЛЮБЫХ КОНФЛИКТОВ */
+/* Переопределяем все возможные стили для кнопок в модальных окнах */
+button[class*="glass-modal-button"],
+button[class*="glass-modal-button-primary"],
+button[class*="glass-modal-button-secondary"],
+.glass-modal-overlay button,
+.glass-modal-content button,
+.glass-modal-button-group button {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Переопределяем все inline стили */
+button[style*="color"] {
+  color: #ffffff !important;
+}
+
+/* Переопределяем все возможные селекторы */
+*[class*="glass-modal"] button,
+*[class*="glass-modal"] button * {
+  color: #ffffff !important;
+}
+
+.ai-model-select-root > div[class*='sc-fFrLqr'] {
+  position: absolute !important;
+  left: 0 !important;
+  bottom: 100% !important;
+  width: 100% !important;
+  min-width: 120px !important;
+  z-index: 999 !important;
+  box-shadow: 0 6px 24px 2px rgba(20,20,20,0.22);
+  border: 1px solid #27283A;
+}
+
+/* Оптимизации для Opera */
+textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-clip: padding-box;
+  -webkit-background-clip: padding-box;
+}
+
+/* Оптимизация рендеринга для Opera */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  textarea {
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
+/* Отключение аппаратного ускорения для текстовых полей в Opera */
+textarea:focus {
+  -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+}
