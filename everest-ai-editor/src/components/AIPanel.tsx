@@ -26,10 +26,12 @@ import {
   Edit3,
   Square,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Mail
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { trackGoal, YM_EVENTS } from '../utils/yandexMetrika';
+import DeveloperContactModal from './DeveloperContactModal';
 
 interface AIMessage {
   role: 'user' | 'assistant' | 'system';
@@ -1546,6 +1548,7 @@ const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile,
   const [showFileSelector, setShowFileSelector] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [showDeveloperContact, setShowDeveloperContact] = useState(false);
   const [selectedModel, setSelectedModel] = useState<'GigaChat Lite' | 'GigaChat Pro' | 'GigaChat Max'>('GigaChat Lite');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -2638,6 +2641,13 @@ const openModelMenu = useCallback(() => {
               <Lightbulb size={14} />
               <span>Быстрые действия</span>
             </QuickActionMainButton>
+            <QuickActionMainButton
+              onClick={() => setShowDeveloperContact(true)}
+              title="Связь с разработчиком"
+            >
+              <Mail size={14} />
+              <span>Связь с разработчиком</span>
+            </QuickActionMainButton>
             {showModelMenu && modelMenuCoords && ReactDOM.createPortal(
               <FileSelector
                 id="ai-model-portal-menu"
@@ -2713,6 +2723,11 @@ const openModelMenu = useCallback(() => {
           </div>
         </BottomButtonsContainer>
       </AIInput>
+      
+      <DeveloperContactModal
+        isOpen={showDeveloperContact}
+        onClose={() => setShowDeveloperContact(false)}
+      />
     </AIPanelContainer>
   );
 };

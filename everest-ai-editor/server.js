@@ -2387,6 +2387,66 @@ app.post('/api/ai/chat', async (req, res) => {
   }
 });
 
+// OPTIONS для /api/developer/contact
+app.options('/api/developer/contact', (req, res) => {
+  setCorsHeaders(req, res);
+  res.sendStatus(200);
+});
+
+// API для связи с разработчиком
+app.post('/api/developer/contact', async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Сообщение не может быть пустым' });
+    }
+
+    // Устанавливаем CORS заголовки
+    setCorsHeaders(req, res);
+
+    const developerUsername = 'ever777st';
+    const timestamp = new Date().toLocaleString('ru-RU');
+    
+    // Форматируем сообщение для Telegram
+    const telegramMessage = `📨 <b>Новое сообщение от пользователя сайта</b>\n\n` +
+      `⏰ <b>Время:</b> ${timestamp}\n\n` +
+      `💬 <b>Сообщение:</b>\n${message.trim()}\n\n` +
+      `🌐 <b>Источник:</b> everestcode.ru`;
+
+    try {
+      // Отправляем сообщение разработчику через Telegram бота
+      await telegramBot.sendMessageToUsername(developerUsername, telegramMessage);
+      
+      log(`✅ Сообщение от пользователя отправлено разработчику @${developerUsername}`);
+      
+      res.json({ 
+        success: true, 
+        message: 'Сообщение успешно отправлено разработчику' 
+      });
+    } catch (telegramError) {
+      console.error('Ошибка отправки в Telegram:', telegramError);
+      
+      // Если не удалось отправить в Telegram, все равно возвращаем успех
+      // (чтобы пользователь не видел ошибку, но мы логируем проблему)
+      log(`⚠️ Не удалось отправить сообщение в Telegram: ${telegramError.message}`);
+      
+      res.json({ 
+        success: true, 
+        message: 'Сообщение принято к обработке' 
+      });
+    }
+  } catch (error) {
+    log('💥 Ошибка обработки сообщения разработчику:', error.message);
+    
+    setCorsHeaders(req, res);
+    
+    res.status(500).json({ 
+      error: 'Внутренняя ошибка сервера. Попробуйте позже.' 
+    });
+  }
+});
+
 // Получение списка доступных моделей GigaChat
 app.get('/api/ai/models', async (req, res) => {
   try {

@@ -462,6 +462,28 @@ class TelegramBotService {
     }
   }
 
+  async sendMessageToUsername(username, text) {
+    try {
+      if (!this.bot || !this.isRunning) {
+        throw new Error('Telegram бот не инициализирован');
+      }
+
+      // Убираем @ если есть
+      const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
+      
+      // Получаем chat_id по username
+      const chat = await this.bot.getChat(`@${cleanUsername}`);
+      const chatId = chat.id;
+
+      await this.bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
+      console.log(`✅ Сообщение отправлено пользователю @${cleanUsername} (ID: ${chatId})`);
+      return true;
+    } catch (error) {
+      console.error(`Ошибка отправки сообщения пользователю @${username}:`, error);
+      throw error;
+    }
+  }
+
   async stop() {
     try {
       if (this.bot) {
