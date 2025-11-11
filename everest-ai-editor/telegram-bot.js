@@ -131,21 +131,14 @@ class TelegramBotService {
           lastName: user.last_name
         });
         
-        // Генерируем код авторизации
-        const authCode = this.generateAuthCode();
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
-        
-        // Сохраняем код
-        this.saveAuthCode(user.id, authCode, expiresAt);
-        
         try {
           await this.bot.sendMessage(chatId, 
-            `🔐 Код авторизации: ${authCode}\n\n` +
-            `Перейдите на сайт everestcode.ru и введите этот код для входа в аккаунт.\n\n` +
-            `Код действителен в течение 10 минут.\n\n` +
-            `💡 После авторизации вы сможете получать файлы с сайта прямо в этот чат!`
+            `👋 Добро пожаловать!\n\n` +
+            `Я бот для сайта everestcode.ru.\n\n` +
+            `💡 Для связи аккаунта на сайте с Telegram используйте команду /link ваш_username\n\n` +
+            `После связывания аккаунта вы сможете получать файлы с сайта прямо в этот чат!`
           );
-          console.log(`✅ Код ${authCode} отправлен пользователю ${user.username || user.first_name} (ID: ${user.id})`);
+          console.log(`✅ Приветствие отправлено пользователю ${user.username || user.first_name} (ID: ${user.id})`);
         } catch (error) {
           console.error(`❌ Ошибка отправки сообщения пользователю ${user.username || user.first_name} (ID: ${user.id}):`, error.message);
         }
@@ -226,11 +219,10 @@ class TelegramBotService {
         try {
           await this.bot.sendMessage(chatId,
             `📋 Доступные команды:\n\n` +
-            `/start - Получить код авторизации и начать работу\n` +
+            `/start - Начать работу с ботом\n` +
             `/link <username> - Связать аккаунт на сайте с Telegram\n` +
             `/help - Показать это сообщение\n\n` +
-            `Для авторизации на сайте everestcode.ru используйте команду /start\n\n` +
-            `Если вы уже авторизованы на сайте, используйте команду /link ваш_username для связи аккаунта.\n\n` +
+            `💡 Для связи аккаунта на сайте everestcode.ru используйте команду /link ваш_username\n\n` +
             `После связывания аккаунта вы сможете получать файлы с сайта прямо в этот чат!`
           );
           console.log(`✅ Справка отправлена пользователю ${user.username || user.first_name} (ID: ${user.id})`);
@@ -256,7 +248,8 @@ class TelegramBotService {
         try {
           await this.bot.sendMessage(chatId,
             `❌ Вы не авторизованы на сайте.\n\n` +
-            `Используйте команду /start для получения кода авторизации.`
+            `Для связи аккаунта используйте команду /link ваш_username\n\n` +
+            `Авторизация на сайте происходит через Telegram виджет.`
           );
           console.log(`✅ Сообщение о неавторизованности отправлено пользователю ${user.username || user.first_name} (ID: ${user.id})`);
         } catch (error) {
@@ -282,46 +275,6 @@ class TelegramBotService {
     }
   }
 
-  generateAuthCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-  }
-
-  async saveAuthCode(telegramId, code, expiresAt) {
-    try {
-      // Сохраняем код в кеш или временную таблицу
-      // В реальном приложении лучше использовать Redis
-      const authData = {
-        telegramId,
-        code,
-        expiresAt: expiresAt.toISOString()
-      };
-      
-      // Сохраняем в файл для простоты (в продакшене лучше Redis)
-      const authFilePath = path.join(__dirname, 'temp', 'auth-codes.json');
-      const tempDir = path.dirname(authFilePath);
-      
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      let authCodes = [];
-      if (fs.existsSync(authFilePath)) {
-        authCodes = JSON.parse(fs.readFileSync(authFilePath, 'utf8'));
-      }
-
-      // Удаляем старые коды
-      authCodes = authCodes.filter(auth => new Date(auth.expiresAt) > new Date());
-      
-      // Добавляем новый код
-      authCodes.push(authData);
-      
-      fs.writeFileSync(authFilePath, JSON.stringify(authCodes, null, 2));
-      
-      console.log(`💾 Код авторизации ${code} сохранен для Telegram ID ${telegramId}`);
-    } catch (error) {
-      console.error('Ошибка сохранения кода авторизации:', error);
-    }
-  }
 
   async getUserByTelegramId(telegramId) {
     try {
@@ -454,10 +407,41 @@ class TelegramBotService {
         throw new Error('Telegram бот не инициализирован');
       }
 
-      await this.bot.sendMessage(telegramId, text, { parse_mode: 'HTML' });
-      console.log(`✅ Сообщение отправлено пользователю ${telegramId}`);
+      // Преобразуем chat_id в число, если это строка
+      const chatId = typeof telegramId === 'string' ? parseInt(telegramId, 10) : telegramId;
+      
+      // Отправляем с таймаутом (7 секунд)
+      const sendWithTimeout = () => {
+        return Promise.race([
+          this.bot.sendMessage(chatId, text, { parse_mode: 'HTML' }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Таймаут отправки сообщения (7 секунд)')), 7000)
+          )
+        ]);
+      };
+
+      await sendWithTimeout();
+      console.log(`✅ Сообщение отправлено пользователю ${chatId}`);
+      return true;
     } catch (error) {
-      console.error('Ошибка отправки сообщения:', error);
+      console.error(`❌ Ошибка отправки сообщения пользователю ${telegramId}:`, error);
+      
+      // Детальная обработка ошибок Telegram API
+      if (error.response) {
+        const statusCode = error.response.statusCode;
+        const description = error.response.body?.description || error.message;
+        
+        if (statusCode === 403) {
+          throw new Error(`Пользователь ${telegramId} заблокировал бота или не начал с ним диалог.`);
+        } else if (statusCode === 400) {
+          throw new Error(`Неверный запрос к Telegram API: ${description}`);
+        } else if (statusCode === 429) {
+          throw new Error(`Превышен лимит запросов к Telegram API. Попробуйте позже.`);
+        } else {
+          throw new Error(`Ошибка Telegram API (${statusCode}): ${description}`);
+        }
+      }
+      
       throw error;
     }
   }
@@ -471,15 +455,79 @@ class TelegramBotService {
       // Убираем @ если есть
       const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
       
-      // Получаем chat_id по username
-      const chat = await this.bot.getChat(`@${cleanUsername}`);
-      const chatId = chat.id;
+      console.log(`📤 Попытка отправить сообщение пользователю @${cleanUsername}...`);
+      
+      // Сначала пробуем отправить напрямую по username (работает если пользователь начал диалог с ботом)
+      const sendDirectWithTimeout = () => {
+        return Promise.race([
+          this.bot.sendMessage(`@${cleanUsername}`, text, { parse_mode: 'HTML' }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Таймаут отправки сообщения (7 секунд)')), 7000)
+          )
+        ]);
+      };
 
-      await this.bot.sendMessage(chatId, text, { parse_mode: 'HTML' });
-      console.log(`✅ Сообщение отправлено пользователю @${cleanUsername} (ID: ${chatId})`);
-      return true;
+      try {
+        const result = await sendDirectWithTimeout();
+        console.log(`✅ Сообщение успешно отправлено пользователю @${cleanUsername} напрямую`);
+        return result;
+      } catch (directError) {
+        console.log(`⚠️ Прямая отправка по username не удалась, пробуем получить chat_id...`);
+        console.log(`📋 Ошибка: ${directError.message}`);
+        
+        // Если прямая отправка не сработала, пробуем получить chat_id
+        const getChatWithTimeout = () => {
+          return Promise.race([
+            this.bot.getChat(`@${cleanUsername}`),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Таймаут получения chat_id (7 секунд)')), 7000)
+            )
+          ]);
+        };
+
+        let chat;
+        try {
+          chat = await getChatWithTimeout();
+          const chatId = chat.id;
+          console.log(`✅ Chat ID получен для @${cleanUsername}: ${chatId}`);
+
+          // Отправляем сообщение по chat_id
+          const sendWithTimeout = () => {
+            return Promise.race([
+              this.bot.sendMessage(chatId, text, { parse_mode: 'HTML' }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Таймаут отправки сообщения (7 секунд)')), 7000)
+              )
+            ]);
+          };
+
+          const result = await sendWithTimeout();
+          console.log(`✅ Сообщение успешно отправлено пользователю @${cleanUsername} (ID: ${chatId})`);
+          return result;
+        } catch (chatError) {
+          console.error(`❌ Ошибка получения chat_id для @${cleanUsername}:`, chatError.message);
+          
+          // Детальная обработка ошибок Telegram API
+          if (directError.response) {
+            const statusCode = directError.response.statusCode;
+            const description = directError.response.body?.description || directError.message;
+            
+            if (statusCode === 403) {
+              throw new Error(`Пользователь @${cleanUsername} заблокировал бота или не начал с ним диалог.`);
+            } else if (statusCode === 400) {
+              throw new Error(`Неверный запрос к Telegram API: ${description}`);
+            } else if (statusCode === 429) {
+              throw new Error(`Превышен лимит запросов к Telegram API. Попробуйте позже.`);
+            } else {
+              throw new Error(`Ошибка Telegram API (${statusCode}): ${description}`);
+            }
+          }
+          
+          throw new Error(`Не удалось отправить сообщение пользователю @${cleanUsername}. Убедитесь, что пользователь начал диалог с ботом.`);
+        }
+      }
     } catch (error) {
-      console.error(`Ошибка отправки сообщения пользователю @${username}:`, error);
+      console.error(`❌ Критическая ошибка отправки сообщения пользователю @${username}:`, error);
       throw error;
     }
   }

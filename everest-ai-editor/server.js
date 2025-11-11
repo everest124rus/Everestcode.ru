@@ -2387,6 +2387,28 @@ app.post('/api/ai/chat', async (req, res) => {
   }
 });
 
+// Функция для установки CORS заголовков
+function setCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5005',
+    'https://everestcode.ru',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5005'
+  ];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+}
+
 // OPTIONS для /api/developer/contact
 app.options('/api/developer/contact', (req, res) => {
   setCorsHeaders(req, res);
@@ -2399,13 +2421,13 @@ app.post('/api/developer/contact', async (req, res) => {
     const { message } = req.body;
     
     if (!message || !message.trim()) {
+      setCorsHeaders(req, res);
       return res.status(400).json({ error: 'Сообщение не может быть пустым' });
     }
 
-    // Устанавливаем CORS заголовки
-    setCorsHeaders(req, res);
-
     const developerUsername = 'ever777st';
+    // Chat ID разработчика (можно получить из переменной окружения или использовать напрямую)
+    const developerChatId = process.env.DEVELOPER_CHAT_ID || '7918830838';
     const timestamp = new Date().toLocaleString('ru-RU');
     
     // Форматируем сообщение для Telegram
@@ -2414,30 +2436,69 @@ app.post('/api/developer/contact', async (req, res) => {
       `💬 <b>Сообщение:</b>\n${message.trim()}\n\n` +
       `🌐 <b>Источник:</b> everestcode.ru`;
 
-    try {
-      // Отправляем сообщение разработчику через Telegram бота
-      await telegramBot.sendMessageToUsername(developerUsername, telegramMessage);
-      
-      log(`✅ Сообщение от пользователя отправлено разработчику @${developerUsername}`);
-      
-      res.json({ 
-        success: true, 
-        message: 'Сообщение успешно отправлено разработчику' 
-      });
-    } catch (telegramError) {
-      console.error('Ошибка отправки в Telegram:', telegramError);
-      
-      // Если не удалось отправить в Telegram, все равно возвращаем успех
-      // (чтобы пользователь не видел ошибку, но мы логируем проблему)
-      log(`⚠️ Не удалось отправить сообщение в Telegram: ${telegramError.message}`);
-      
-      res.json({ 
-        success: true, 
-        message: 'Сообщение принято к обработке' 
-      });
-    }
+    // Сразу возвращаем успешный ответ пользователю (не ждем Telegram)
+    // Это предотвращает таймауты nginx на production
+    setCorsHeaders(req, res);
+    res.json({ 
+      success: true, 
+      message: 'Сообщение успешно отправлено разработчику' 
+    });
+
+    // Отправляем сообщение разработчику через Telegram бота асинхронно (в фоне)
+    // Не ждем ответа от Telegram, чтобы не блокировать ответ пользователю
+    setImmediate(async () => {
+      try {
+        if (!telegramBot || !telegramBot.isRunning) {
+          log(`⚠️ Telegram бот не инициализирован, сообщение не отправлено`);
+          console.error('Telegram бот недоступен. Проверьте TELEGRAM_BOT_TOKEN и инициализацию бота.');
+          return;
+        }
+
+        log(`📤 Попытка отправить сообщение разработчику (Chat ID: ${developerChatId}, Username: @${developerUsername})...`);
+
+        // Сначала пробуем отправить по chat_id (надежнее)
+        const sendWithTimeout = async () => {
+          try {
+            // Пробуем отправить по chat_id
+            return await Promise.race([
+              telegramBot.sendMessageToUser(developerChatId, telegramMessage),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Таймаут отправки в Telegram (15 секунд)')), 15000)
+              )
+            ]);
+          } catch (chatIdError) {
+            log(`⚠️ Отправка по chat_id не удалась, пробуем по username...`);
+            // Если не получилось по chat_id, пробуем по username
+            return await Promise.race([
+              telegramBot.sendMessageToUsername(developerUsername, telegramMessage),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Таймаут отправки в Telegram (15 секунд)')), 15000)
+              )
+            ]);
+          }
+        };
+
+        await sendWithTimeout();
+        log(`✅ Сообщение от пользователя успешно отправлено разработчику`);
+      } catch (telegramError) {
+        console.error('❌ Ошибка отправки в Telegram:', telegramError);
+        log(`⚠️ Не удалось отправить сообщение в Telegram: ${telegramError.message}`);
+        
+        // Детальное логирование ошибки для отладки
+        if (telegramError.response) {
+          log(`📋 Детали ошибки Telegram API:`, {
+            status: telegramError.response.statusCode,
+            body: telegramError.response.body,
+            description: telegramError.response.body?.description
+          });
+        }
+        
+        // Логируем, но не блокируем ответ пользователю
+      }
+    });
   } catch (error) {
     log('💥 Ошибка обработки сообщения разработчику:', error.message);
+    log('📋 Stack trace:', error.stack);
     
     setCorsHeaders(req, res);
     

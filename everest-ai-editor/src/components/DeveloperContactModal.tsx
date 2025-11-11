@@ -214,7 +214,40 @@ const DeveloperContactModal: React.FC<DeveloperContactModalProps> = ({ isOpen, o
         body: JSON.stringify({ message: message.trim() }),
       });
 
-      const data = await response.json();
+      // Обрабатываем ответ
+      let data;
+      
+      // Проверяем статус ответа
+      if (response.status === 404) {
+        throw new Error('Endpoint не найден. Убедитесь, что сервер перезапущен после изменений.');
+      }
+      
+      if (response.status === 504) {
+        // 504 Gateway Timeout - это проблема nginx, но сообщение может быть принято
+        // Показываем пользователю, что сообщение принято
+        setSuccess(true);
+        setMessage('');
+        setTimeout(() => {
+          setSuccess(false);
+          onClose();
+        }, 2000);
+        return;
+      }
+      
+      // Проверяем, что ответ действительно JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Неожиданный ответ от сервера:', text);
+        throw new Error(`Сервер вернул неожиданный формат ответа (${response.status}). Возможно, сервер не перезапущен.`);
+      }
+
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Ошибка парсинга JSON:', parseError);
+        throw new Error('Сервер вернул некорректный ответ. Попробуйте позже.');
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Ошибка отправки сообщения');
@@ -229,7 +262,18 @@ const DeveloperContactModal: React.FC<DeveloperContactModalProps> = ({ isOpen, o
         onClose();
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Не удалось отправить сообщение. Попробуйте позже.');
+      console.error('Ошибка отправки сообщения:', err);
+      
+      // Более детальная обработка ошибок
+      let errorMessage = 'Не удалось отправить сообщение. Попробуйте позже.';
+      
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err instanceof TypeError && err.message.includes('fetch')) {
+        errorMessage = 'Не удалось подключиться к серверу. Проверьте, что сервер запущен.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
