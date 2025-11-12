@@ -284,9 +284,11 @@ const InputRow = styled.div`
 
 const BottomButtonsContainer = styled.div`
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: stretch;
   width: 100%;
+  flex-wrap: wrap;
+  min-width: 0;
 `;
 
 const InputField = styled.textarea.withConfig({
@@ -386,8 +388,9 @@ const QuickActionButton = styled.button`
 `;
 
 const QuickActionMainButton = styled.button`
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   height: 32px;
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: 6px;
@@ -397,16 +400,36 @@ const QuickActionMainButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
   font-weight: 500;
   transition: all 0.2s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  > svg {
+    flex-shrink: 0;
+  }
 
   &:hover {
     background-color: rgba(59, 130, 246, 0.15);
     border-color: rgba(59, 130, 246, 0.3);
     color: ${props => props.theme.colors.text};
+  }
+
+  @media (max-width: 600px) {
+    font-size: 10px;
+    padding: 6px 6px;
+    gap: 3px;
   }
 `;
 
@@ -564,8 +587,9 @@ const CodeActionButton = styled.button`
 `;
 
 const AttachButton = styled.button`
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   height: 32px;
   border: 1px solid ${props => props.theme.colors.border};
   border-radius: 6px;
@@ -575,33 +599,72 @@ const AttachButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
   font-weight: 500;
   transition: all 0.2s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  > svg {
+    flex-shrink: 0;
+  }
 
   &:hover {
     background-color: rgba(59, 130, 246, 0.15);
     border-color: rgba(59, 130, 246, 0.3);
     color: ${props => props.theme.colors.text};
   }
+
+  @media (max-width: 600px) {
+    font-size: 10px;
+    padding: 6px 6px;
+    gap: 3px;
+  }
 `;
 
 const ModelButton = styled(AttachButton)`
-  flex: 1;
-  min-width: 140px;
+  flex: 1 1 auto;
+  min-width: 80px;
+  max-width: 100%;
   font-weight: 600;
-  white-space: nowrap;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+  }
   
   > svg {
     flex-shrink: 0;
     opacity: 1 !important;
     display: block !important;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+  }
+
+  @media (max-width: 600px) {
+    min-width: 60px;
+    font-size: 10px;
+    gap: 4px;
+    
+    > svg {
+      width: 14px;
+      height: 14px;
+    }
   }
 `;
 
@@ -2601,7 +2664,7 @@ const openModelMenu = useCallback(() => {
         </InputContainer>
         
         <BottomButtonsContainer>
-          <div className="ai-model-select-root" style={{ position: 'relative', display: 'flex', gap: 8 }}>
+          <div className="ai-model-select-root" style={{ position: 'relative', display: 'flex', gap: 6, width: '100%', minWidth: 0, flexWrap: 'wrap' }}>
             <ModelButton
               ref={aiButtonRef}
               onClick={openModelMenu}
