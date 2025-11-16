@@ -308,6 +308,19 @@ class TelegramBotService {
           }
         });
       } else {
+        // Генерируем уникальный реферальный код
+        let referralCode;
+        let isUnique = false;
+        while (!isUnique) {
+          referralCode = this.generateReferralCode();
+          const existing = await prisma.user.findUnique({
+            where: { referralCode }
+          });
+          if (!existing) {
+            isUnique = true;
+          }
+        }
+        
         // Создаем нового пользователя
         user = await prisma.user.create({
           data: {
@@ -318,6 +331,7 @@ class TelegramBotService {
             lastName,
             phoneNumber,
             role: 'user',
+            referralCode: referralCode,
             // Устанавливаем лимиты по умолчанию
             tokensType1: 10,
             tokensType2: 100,

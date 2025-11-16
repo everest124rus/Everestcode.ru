@@ -856,8 +856,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   }
 
   useEffect(() => {
-    // Рендерим Yandex RTB, если API уже загружено
-    if (window.yaContextCb) {
+    // Рендерим Yandex RTB только в production (не на localhost)
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocalhost && window.yaContextCb) {
       window.yaContextCb.push(() => {
         if (window.Ya && window.Ya.Context && window.Ya.Context.AdvManager) {
           window.Ya.Context.AdvManager.render({
@@ -1056,18 +1057,20 @@ const Sidebar: React.FC<SidebarProps> = ({
     {dragOverError}
   </div>
 )}
-      {/* Добавляем рекламный блок Яндекс RTB */}
-      <div
-        id="yandex_rtb_R-A-17622869-2"
-        style={{
-          width: '250px', // ширина как у sidebar
-          height: '240px', // под 6 иконок файлов
-          margin: '20px auto 0 auto',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          background: '#181820'
-        }}
-      />
+      {/* Добавляем рекламный блок Яндекс RTB только в production */}
+      {(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') && (
+        <div
+          id="yandex_rtb_R-A-17622869-2"
+          style={{
+            width: '250px', // ширина как у sidebar
+            height: '240px', // под 6 иконок файлов
+            margin: '20px auto 0 auto',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            background: '#181820'
+          }}
+        />
+      )}
     </SidebarContainer>
   );
 };

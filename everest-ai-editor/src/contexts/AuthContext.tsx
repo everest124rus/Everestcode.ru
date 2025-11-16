@@ -13,13 +13,14 @@ export interface User {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
+  referralCode?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, username: string) => Promise<boolean>;
+  register: (email: string, password: string, username: string, referralCode?: string) => Promise<boolean>;
   loginWithTelegram: (token: string, user: any) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -88,14 +89,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (email: string, password: string, username: string): Promise<boolean> => {
+  const register = async (email: string, password: string, username: string, referralCode?: string): Promise<boolean> => {
     try {
       const response = await fetch(buildApiUrl('/auth/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, username }),
+        body: JSON.stringify({ email, password, username, referralCode: referralCode || undefined }),
       });
 
       const data = await response.json();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { X, User, Calendar, BarChart3, Crown, Upload, Save } from 'lucide-react';
+import { X, User, Calendar, BarChart3, Crown, Upload, Save, Copy, Check, HelpCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { buildApiUrl, authHeaders } from '../config/api';
 
@@ -252,8 +252,21 @@ interface UserLimits {
   };
 }
 
+interface Referral {
+  id: string;
+  username: string;
+  email?: string;
+  avatarUrl?: string;
+  firstName?: string;
+  lastName?: string;
+  telegramUsername?: string;
+  displayName: string;
+  registeredAt: string;
+}
+
 const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
-  const { user, token, isPremium } = useAuth();
+  const { user: authUser, token, isPremium } = useAuth();
+  const [user, setUser] = useState(authUser);
   const [stats, setStats] = useState<UserStats>({
     totalRequests: 0,
     todayRequests: 0,
@@ -263,8 +276,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
     recentRequests: []
   });
   const [limits, setLimits] = useState<UserLimits | null>(null);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showReferralTooltip, setShowReferralTooltip] = useState(false);
+
+  useEffect(() => {
+    setUser(authUser);
+  }, [authUser]);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -278,6 +298,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
     
     setIsLoading(true);
     try {
+      // Загружаем профиль пользователя (включая referralCode)
+      const profileResponse = await fetch(buildApiUrl('/user/profile'), {
+        headers: authHeaders(token)
+      });
+      
       // Загружаем статистику
       const statsResponse = await fetch(buildApiUrl('/user/stats'), {
         headers: authHeaders(token)
@@ -287,6 +312,26 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       const limitsResponse = await fetch(buildApiUrl('/user/limits'), {
         headers: authHeaders(token)
       });
+      
+      // Загружаем список рефералов
+      const referralsResponse = await fetch(buildApiUrl('/user/referrals'), {
+        headers: authHeaders(token)
+      });
+      
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        if (profileData.user) {
+          setUser(prevUser => {
+            const updatedUser = {
+              ...prevUser,
+              ...profileData.user
+            };
+            // Обновляем localStorage
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            return updatedUser;
+          });
+        }
+      }
       
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
@@ -303,6 +348,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       if (limitsResponse.ok) {
         const limitsData = await limitsResponse.json();
         setLimits(limitsData);
+      }
+      
+      if (referralsResponse.ok) {
+        const referralsData = await referralsResponse.json();
+        setReferrals(referralsData.referrals || []);
       }
     } catch (error) {
       console.error('Ошибка загрузки статистики:', error);
@@ -328,11 +378,28 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       });
 
       if (response.ok) {
+        const data = await response.json();
         // Обновляем аватар в контексте
-        window.location.reload(); // Простое обновление для демонстрации
+        if (data.avatarUrl && user) {
+          const updatedUser = { ...user, avatarUrl: data.avatarUrl };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          window.location.reload(); // Простое обновление для демонстрации
+        }
       }
     } catch (error) {
       console.error('Ошибка загрузки аватара:', error);
+    }
+  };
+
+  const handleCopyReferralCode = async () => {
+    if (user?.referralCode) {
+      try {
+        await navigator.clipboard.writeText(user.referralCode);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (error) {
+        console.error('Ошибка копирования:', error);
+      }
     }
   };
 
@@ -428,27 +495,37 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
           
           <ModelsList>
             {limits ? (
-              Object.entries(limits.models).map(([key, model]) => (
-                <ModelItem key={key}>
-                  <ModelName>{model.name}</ModelName>
-                  <ModelCount>
-                    {model.unlimited ? (
-                      <span style={{ color: '#28a745' }}>∞ неограниченно</span>
-                    ) : (
-                      <span>
-                        {model.used} / {model.total} запросов
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: model.remaining > 0 ? '#28a745' : '#dc3545',
-                          marginTop: '2px'
-                        }}>
-                          Осталось: {model.remaining}
-                        </div>
-                      </span>
-                    )}
-                  </ModelCount>
-                </ModelItem>
-              ))
+              Object.entries(limits.models).map(([key, model]) => {
+                // Маппинг правильных названий моделей
+                const modelNames: { [key: string]: string } = {
+                  'gigachat': 'GigaChat Lite',
+                  'gigachat-2': 'GigaChat Pro',
+                  'gigachat-3': 'GigaChat MAX'
+                };
+                const displayName = modelNames[key] || model.name;
+                
+                return (
+                  <ModelItem key={key}>
+                    <ModelName>{displayName}</ModelName>
+                    <ModelCount>
+                      {model.unlimited ? (
+                        <span style={{ color: '#28a745' }}>∞ неограниченно</span>
+                      ) : (
+                        <span>
+                          {model.used} / {model.total} запросов
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: model.remaining > 0 ? '#28a745' : '#dc3545',
+                            marginTop: '2px'
+                          }}>
+                            Осталось: {model.remaining}
+                          </div>
+                        </span>
+                      )}
+                    </ModelCount>
+                  </ModelItem>
+                );
+              })
             ) : (
               <div style={{ color: '#666', fontSize: '14px' }}>
                 Загрузка лимитов...
@@ -456,6 +533,196 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
             )}
           </ModelsList>
         </ModelsSection>
+
+        {user?.referralCode && (
+          <ModelsSection>
+            <SectionTitle>
+              <User size={18} />
+              Реферальный код
+              <div style={{ position: 'relative', display: 'inline-block', marginLeft: '8px' }}>
+                <HelpCircle 
+                  size={16} 
+                  style={{ 
+                    cursor: 'pointer', 
+                    color: '#999',
+                    verticalAlign: 'middle'
+                  }}
+                  onMouseEnter={() => setShowReferralTooltip(true)}
+                  onMouseLeave={() => setShowReferralTooltip(false)}
+                />
+                {showReferralTooltip && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginBottom: '8px',
+                    background: '#1a1a1a',
+                    color: '#fff',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    width: '280px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                    zIndex: 1000,
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                      Что такое реферальный код?
+                    </div>
+                    <div style={{ lineHeight: '1.6', marginBottom: '8px' }}>
+                      Поделитесь своим реферальным кодом с друзьями. Когда они зарегистрируются по вашему коду, они получат бонусные токены:
+                    </div>
+                    <div style={{ lineHeight: '1.6', fontSize: '11px', color: '#aaa' }}>
+                      • +10 токенов на GigaChat Lite<br/>
+                      • +50 токенов на GigaChat Pro<br/>
+                      • +5 токенов на GigaChat MAX
+                    </div>
+                  </div>
+                )}
+              </div>
+            </SectionTitle>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px'
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
+                  Ваш реферальный код
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#3b82f6',
+                  fontFamily: 'monospace',
+                  letterSpacing: '2px'
+                }}>
+                  {user.referralCode}
+                </div>
+              </div>
+              <button
+                onClick={handleCopyReferralCode}
+                style={{
+                  background: copied ? '#28a745' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {copied ? (
+                  <>
+                    <Check size={16} />
+                    Скопировано
+                  </>
+                ) : (
+                  <>
+                    <Copy size={16} />
+                    Копировать
+                  </>
+                )}
+              </button>
+            </div>
+          </ModelsSection>
+        )}
+
+        {referrals.length > 0 && (
+          <ModelsSection>
+            <SectionTitle>
+              <User size={18} />
+              Мои рефералы ({referrals.length})
+            </SectionTitle>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              {referrals.map((referral) => (
+                <div
+                  key={referral.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: referral.avatarUrl
+                      ? `url(${referral.avatarUrl}) center/cover`
+                      : `linear-gradient(135deg, #3b82f6, #8b5cf6)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    flexShrink: 0
+                  }}>
+                    {!referral.avatarUrl && (
+                      <span>
+                        {referral.displayName.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#fff',
+                      marginBottom: '4px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {referral.displayName}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#999',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {referral.username || referral.email || 'Пользователь'}
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#666',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {new Date(referral.registeredAt).toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ModelsSection>
+        )}
       </ModalContent>
     </ModalOverlay>
   );

@@ -168,6 +168,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -250,7 +251,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     setIsLoading(true);
     setError('');
     try {
-      const successResult = mode === 'login' ? await login(email, password) : await register(email, password, username);
+      const successResult = mode === 'login' ? await login(email, password) : await register(email, password, username, referralCode || undefined);
       if (successResult) {
         setSuccess(mode === 'login' ? 'Вход успешен!' : 'Регистрация успешна!');
         // Фиксация цели Яндекс.Метрики для логина/регистрации
@@ -266,7 +267,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         }
         setTimeout(() => {
           onClose();
-          setEmail(''); setPassword(''); setUsername('');
+          setEmail(''); setPassword(''); setUsername(''); setReferralCode('');
         }, 1500);
       }
     } catch (err: any) {
@@ -307,6 +308,20 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
               <PasswordToggle type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</PasswordToggle>
             </PasswordInput>
           </InputGroup>
+          {mode === 'register' && (
+            <InputGroup>
+              <Label htmlFor="referralCode">Реферальный код (необязательно)</Label>
+              <Input 
+                id="referralCode" 
+                type="text" 
+                value={referralCode} 
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} 
+                placeholder="Введите реферальный код" 
+                maxLength={8}
+                style={{ textTransform: 'uppercase', fontFamily: 'monospace', letterSpacing: '2px' }}
+              />
+            </InputGroup>
+          )}
           {error && <ErrorMessage>{error}</ErrorMessage>}
           {success && <SuccessMessage>{success}</SuccessMessage>}
           <Button type="submit" $variant="primary" disabled={isLoading}>{isLoading ? '⏳' : mode === 'login' ? 'Войти' : 'Зарегистрироваться'}</Button>

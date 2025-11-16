@@ -172,6 +172,16 @@ const upload = multer({
   }
 });
 
+// Функция генерации реферального кода
+function generateReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Исключаем похожие символы (0, O, I, 1)
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 // Загрузка переменных окружения из config.env
 const configPath = path.join(__dirname, 'config.env');
 if (fs.existsSync(configPath)) {
@@ -217,6 +227,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// Статическая раздача файлов из папки uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Инициализация Prisma
 async function initializeDatabase() {
@@ -1000,7 +1013,9 @@ app.get('/api/auth/verify', authenticateToken, async (req, res) => {
         telegramUsername: true,
         firstName: true,
         lastName: true,
-        phoneNumber: true
+        phoneNumber: true,
+        referralCode: true,
+        avatarUrl: true
       }
     });
 
@@ -1526,10 +1541,26 @@ async function checkIPRegistrationLimit(ip) {
 // Регистрация пользователя
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, username } = req.body;
+    const { email, password, username, referralCode } = req.body;
     
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'Все поля обязательны' });
+    }
+
+    // Проверяем реферальный код, если он указан
+    let referrerId = null;
+    if (referralCode && referralCode.trim()) {
+      const referrer = await prisma.user.findUnique({
+        where: { referralCode: referralCode.trim().toUpperCase() },
+        select: { id: true }
+      });
+      
+      if (!referrer) {
+        return res.status(400).json({ error: 'Неверный реферальный код' });
+      }
+      
+      referrerId = referrer.id;
+      console.log(`🎯 Регистрация по реферальному коду: ${referralCode} (реферер: ${referrerId})`);
     }
 
     // Получаем IP адрес клиента
@@ -1562,6 +1593,32 @@ app.post('/api/auth/register', async (req, res) => {
     // Хешируем пароль
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    // Генерируем уникальный реферальный код
+    let newReferralCode;
+    let isUnique = false;
+    while (!isUnique) {
+      newReferralCode = generateReferralCode();
+      const existing = await prisma.user.findUnique({
+        where: { referralCode: newReferralCode }
+      });
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+    
+    // Определяем начальные лимиты (базовые + бонусы за реферальный код)
+    let tokensType1 = 10;   // GigaChat-2 Lite - базовый лимит
+    let tokensType2 = 100;  // GigaChat-2-Pro - базовый лимит
+    let tokensType3 = 0;     // GigaChat-2-Max - базовый лимит
+    
+    // Если есть реферер, начисляем бонусные токены
+    if (referrerId) {
+      tokensType1 += 10;  // +10 на Lite
+      tokensType2 += 50;  // +50 на Pro
+      tokensType3 += 5;   // +5 на MAX
+      console.log(`🎁 Начислены бонусные токены за реферальный код: +10 Lite, +50 Pro, +5 MAX`);
+    }
+    
     // Создаем пользователя
     const user = await prisma.user.create({
       data: {
@@ -1570,10 +1627,12 @@ app.post('/api/auth/register', async (req, res) => {
         password: hashedPassword,
         role: 'user',
         ipAddress: clientIP, // Сохраняем IP адрес
-        // Устанавливаем лимиты по умолчанию
-        tokensType1: 10,   // GigaChat-2 - бесплатно
-        tokensType2: 100,  // GigaChat-2-Pro - средняя модель
-        tokensType3: 0     // GigaChat-2-Max - топовая модель (нет доступа)
+        referralCode: newReferralCode, // Генерируем реферальный код
+        referrerId: referrerId, // Сохраняем ID реферера, если есть
+        // Устанавливаем лимиты (базовые + бонусы)
+        tokensType1: tokensType1,
+        tokensType2: tokensType2,
+        tokensType3: tokensType3
       },
       select: {
         id: true,
@@ -1633,7 +1692,9 @@ app.post('/api/auth/login', async (req, res) => {
         username: true,
         email: true,
         password: true,
-        role: true
+        role: true,
+        referralCode: true,
+        avatarUrl: true
       }
     });
     
@@ -1661,7 +1722,9 @@ app.post('/api/auth/login', async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
+        referralCode: user.referralCode,
+        avatarUrl: user.avatarUrl
       }
     });
   } catch (error) {
@@ -1687,7 +1750,9 @@ app.get('/api/auth/verify', async (req, res) => {
         id: true,
         username: true,
         email: true,
-        role: true
+        role: true,
+        referralCode: true,
+        avatarUrl: true
       }
     });
     
@@ -1851,7 +1916,9 @@ app.get('/api/user/profile', async (req, res) => {
         telegramId: true,
         telegramUsername: true,
         firstName: true,
-        lastName: true
+        lastName: true,
+        referralCode: true,
+        avatarUrl: true
       }
     });
     
@@ -1936,6 +2003,61 @@ app.get('/api/user/limits', async (req, res) => {
   }
 });
 
+// Получить список рефералов (пользователей, зарегистрированных по реферальному коду)
+app.get('/api/user/referrals', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Требуется авторизация' });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+    const userId = decoded.userId;
+
+    // Находим всех пользователей, которые зарегистрировались по реферальному коду текущего пользователя
+    const referrals = await prisma.user.findMany({
+      where: {
+        referrerId: String(userId)
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatarUrl: true,
+        firstName: true,
+        lastName: true,
+        telegramUsername: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({
+      success: true,
+      referrals: referrals.map(ref => ({
+        id: ref.id,
+        username: ref.username,
+        email: ref.email,
+        avatarUrl: ref.avatarUrl,
+        firstName: ref.firstName,
+        lastName: ref.lastName,
+        telegramUsername: ref.telegramUsername,
+        displayName: ref.firstName && ref.lastName 
+          ? `${ref.firstName} ${ref.lastName}` 
+          : ref.firstName || ref.username || ref.email || 'Пользователь',
+        registeredAt: ref.createdAt
+      })),
+      count: referrals.length
+    });
+  } catch (error) {
+    console.error('Ошибка получения списка рефералов:', error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
+
 // Обновить Telegram username пользователя
 app.post('/api/user/update-telegram-username', async (req, res) => {
   try {
@@ -1982,7 +2104,46 @@ app.post('/api/user/update-telegram-username', async (req, res) => {
   }
 });
 
-// Получить Telegram ID по username
+// Загрузка аватарки пользователя
+app.post('/api/user/avatar', upload.single('avatar'), async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Требуется авторизация' });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+    const userId = decoded.userId;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Файл не предоставлен' });
+    }
+
+    // Проверяем тип файла
+    if (!req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Файл должен быть изображением' });
+    }
+
+    // Обновляем пользователя с путем к аватарке
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    await prisma.user.update({
+      where: { id: String(userId) },
+      data: {
+        avatarUrl: avatarUrl
+      }
+    });
+
+    res.json({
+      success: true,
+      avatarUrl: avatarUrl
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки аватарки:', error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
+
 app.post('/api/user/get-telegram-id', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
