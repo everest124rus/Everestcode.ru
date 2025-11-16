@@ -62,4 +62,30 @@ export const GlobalStyles = createGlobalStyle`
     height: 4px;
     cursor: row-resize;
   }
+
+  /* Panel and PanelGroup styles */
+  [data-panel-group] {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+  }
+
+  [data-panel] {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    position: relative !important;
+  }
+
+  [data-panel-id] {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
 `;

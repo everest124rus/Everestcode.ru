@@ -17,24 +17,41 @@ import { getLanguageFromExtension } from './utils/fileUtils';
 
 const AppContainer = styled.div`
   display: flex;
+  width: 100%;
   height: 100vh;
   background-color: ${props => props.theme.colors.background};
   color: ${props => props.theme.colors.text};
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
 `;
 
 const MainContent = styled.div`
   display: flex;
   flex-direction: column;
-  flex: 1;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  position: relative;
+  min-width: 0;
+  min-height: 0;
 `;
 
 const EditorContainer = styled.div`
   display: flex;
-  flex: 1;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+`;
+
+const PanelWrapper = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 `;
 
 
@@ -1061,31 +1078,36 @@ const WebCodePage = () => {
     <ThemeProvider theme={currentTheme}>
       <GlobalStyles />
       <AppContainer>
-        <Sidebar 
-          files={files}
-          onFileSelect={handleFileSelect}
-          onFilesAdd={handleFilesAdd}
-          onFileDelete={handleFileDelete}
-          activeFile={activeFile}
-          isDarkTheme={isDarkTheme}
-          onAuthClick={() => setShowAuthModal(true)}
-          onTelegramLoginClick={() => { setAuthModalMode('telegram'); setShowAuthModal(true); }}
-          onAdminClick={() => setShowAdminPanel(true)}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          isAdmin={isAdmin}
-          token={token}
-        />
-        <MainContent>
-          {Object.keys(files).length === 0 ? (
-            <FileCreator
-              onCreateFile={handleCreateFile}
-              onCreateFolder={handleCreateFolder}
-            />
-          ) : (
-            <EditorContainer>
-              <PanelGroup direction="horizontal">
-                <Panel defaultSize={60} minSize={30}>
+        <PanelGroup direction="horizontal" style={{ width: '100%', height: '100%' }}>
+          <Panel defaultSize={15} minSize={10} maxSize={30}>
+            <PanelWrapper>
+              <Sidebar 
+                files={files}
+                onFileSelect={handleFileSelect}
+                onFilesAdd={handleFilesAdd}
+                onFileDelete={handleFileDelete}
+                activeFile={activeFile}
+                isDarkTheme={isDarkTheme}
+                onAuthClick={() => setShowAuthModal(true)}
+                onTelegramLoginClick={() => { setAuthModalMode('telegram'); setShowAuthModal(true); }}
+                onAdminClick={() => setShowAdminPanel(true)}
+                isAuthenticated={isAuthenticated}
+                user={user}
+                isAdmin={isAdmin}
+                token={token}
+              />
+            </PanelWrapper>
+          </Panel>
+          <PanelResizeHandle />
+          <Panel defaultSize={60} minSize={30}>
+            <PanelWrapper>
+              <MainContent>
+                {Object.keys(files).length === 0 ? (
+                  <FileCreator
+                    onCreateFile={handleCreateFile}
+                    onCreateFolder={handleCreateFolder}
+                  />
+                ) : (
                   <CodeEditor
                     ref={codeEditorRef}
                     value={activeFile ? files[activeFile] || '' : ''}
@@ -1097,28 +1119,31 @@ const WebCodePage = () => {
                     onTabClose={handleTabClose}
                     onTabRename={handleTabRename}
                   />
-                </Panel>
-                <PanelResizeHandle />
-                <Panel defaultSize={40} minSize={20}>
-                  <AIPanel
-                    messages={aiMessages}
-                    onSendMessage={handleAIMessage}
-                    currentFile={getCurrentFileInfo()}
-                    onInsertCode={handleInsertCode}
-                    availableFiles={getAvailableFiles()}
-                    conversations={conversations}
-                    currentConversationId={currentConversationId}
-                    onNewConversation={() => createConversation('Новый диалог')}
-                    onSelectConversation={handleSelectConversation}
-                    onDeleteConversation={deleteConversation}
-                    onRenameConversation={renameConversation}
-                    onStopGeneration={handleStopGeneration}
-                  />
-                </Panel>
-              </PanelGroup>
-            </EditorContainer>
-          )}
-        </MainContent>
+                )}
+              </MainContent>
+            </PanelWrapper>
+          </Panel>
+          <PanelResizeHandle />
+          <Panel defaultSize={25} minSize={20} maxSize={40}>
+            <PanelWrapper>
+              <AIPanel
+                messages={aiMessages}
+                onSendMessage={handleAIMessage}
+                currentFile={getCurrentFileInfo()}
+                onInsertCode={handleInsertCode}
+                availableFiles={getAvailableFiles()}
+                onFilesAdd={handleFilesAdd}
+                conversations={conversations}
+                currentConversationId={currentConversationId}
+                onNewConversation={() => createConversation('Новый диалог')}
+                onSelectConversation={handleSelectConversation}
+                onDeleteConversation={deleteConversation}
+                onRenameConversation={renameConversation}
+                onStopGeneration={handleStopGeneration}
+              />
+            </PanelWrapper>
+          </Panel>
+        </PanelGroup>
         
         <AuthModal 
           isOpen={showAuthModal}

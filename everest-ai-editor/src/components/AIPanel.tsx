@@ -17,9 +17,6 @@ import {
   Settings,
   Zap,
   Brain,
-  Pin,
-  FileText,
-  Eye,
   Paperclip,
   X,
   Check,
@@ -32,6 +29,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { trackGoal, YM_EVENTS } from '../utils/yandexMetrika';
 import DeveloperContactModal from './DeveloperContactModal';
+import { getLanguageFromExtension, getFileExtension } from '../utils/fileUtils';
 
 interface AIMessage {
   role: 'user' | 'assistant' | 'system';
@@ -53,6 +51,7 @@ interface AIPanelProps {
     content: string;
     language: string;
   }>;
+  onFilesAdd?: (files: Record<string, string>) => void;
   // Диалоги
   conversations?: Array<{ id: number; title?: string; messages?: any[] }>;
   currentConversationId?: number | null;
@@ -64,11 +63,23 @@ interface AIPanelProps {
 }
 
 const AIPanelContainer = styled.div`
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   background-color: ${props => props.theme.colors.aiPanel};
   border-left: 1px solid ${props => props.theme.colors.border};
+  overflow: hidden;
+<<<<<<< Current (Your changes)
+<<<<<<< Current (Your changes)
+=======
+  min-width: 0;
+  min-height: 0;
+>>>>>>> Incoming (Background Agent changes)
+=======
+  min-width: 0;
+  min-height: 0;
+>>>>>>> Incoming (Background Agent changes)
 `;
 
 const AIHeader = styled.div`
@@ -439,89 +450,6 @@ const LoadingIndicator = styled.div`
   gap: 8px;
   color: ${props => props.theme.colors.textSecondary};
   font-size: 12px;
-`;
-
-const CurrentFileCard = styled.div`
-  background: linear-gradient(135deg, ${props => props.theme.colors.surface} 0%, ${props => props.theme.colors.background} 100%);
-  border: 2px solid ${props => props.theme.colors.primary};
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, ${props => props.theme.colors.primary}, ${props => props.theme.colors.primaryHover});
-    border-radius: 12px 12px 0 0;
-  }
-`;
-
-const FileHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-`;
-
-const FileName = styled.div`
-  font-size: 14px;
-  font-weight: 700;
-  color: ${props => props.theme.colors.text};
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const FileStatus = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: ${props => props.theme.colors.primary};
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const FileInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-`;
-
-const FileLanguage = styled.span`
-  font-size: 10px;
-  padding: 2px 6px;
-  background-color: ${props => props.theme.colors.primary};
-  color: ${props => props.theme.colors.aiUserMessageText};
-  border-radius: 4px;
-  text-transform: uppercase;
-`;
-
-const FileContent = styled.div`
-  font-size: 11px;
-  color: ${props => props.theme.colors.textSecondary};
-  background-color: ${props => props.theme.colors.background};
-  border-radius: 4px;
-  padding: 8px;
-  max-height: 100px;
-  overflow-y: auto;
-  font-family: 'Monaco', 'Consolas', monospace;
-  white-space: pre-wrap;
-  word-break: break-all;
 `;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1604,7 +1532,7 @@ const formatMessageTime = (timestamp?: number): string => {
   return `${day}.${month}.${year} ${hours}:${minutes}`;
 };
 
-const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile, onInsertCode, availableFiles = [], conversations = [], currentConversationId = null, onNewConversation, onSelectConversation, onDeleteConversation, onRenameConversation, onStopGeneration }) => {
+const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile, onInsertCode, availableFiles = [], onFilesAdd, conversations = [], currentConversationId = null, onNewConversation, onSelectConversation, onDeleteConversation, onRenameConversation, onStopGeneration }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<'gigachat' | 'chatgpt'>('gigachat');
   const [attachedFiles, setAttachedFiles] = useState<Array<{name: string, content: string, language: string}>>([]);
@@ -1618,6 +1546,7 @@ const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile,
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const aiButtonRef = useRef<HTMLButtonElement>(null);
   const attachButtonRef = useRef<HTMLButtonElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [modelMenuCoords, setModelMenuCoords] = useState<{left: number, top: number, width: number, height: number} | null>(null);
   const [fileMenuCoords, setFileMenuCoords] = useState<{left: number, top: number, width: number, height: number} | null>(null);
   const { isAuthenticated, isPremium } = useAuth();
@@ -2051,6 +1980,46 @@ const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile,
     setAttachedFiles(prev => prev.filter(f => f.name !== fileName));
   };
 
+  const handleUploadFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const extension = getFileExtension(file.name);
+      const language = getLanguageFromExtension(extension);
+      
+      const newFile = {
+        name: file.name,
+        content: content,
+        language: language
+      };
+      
+      if (!attachedFiles.find(f => f.name === file.name)) {
+        setAttachedFiles(prev => [...prev, newFile]);
+      }
+      
+      // Добавляем файл в сайдбар
+      if (onFilesAdd) {
+        const filePath = `/${file.name}`;
+        onFilesAdd({ [filePath]: content });
+      }
+      
+      setShowFileSelector(false);
+    };
+    reader.readAsText(file);
+    
+    // Сбрасываем input, чтобы можно было загрузить тот же файл снова
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const getLanguageIcon = (language: string) => {
     const icons: {[key: string]: string} = {
       'javascript': '🟨',
@@ -2317,6 +2286,20 @@ const openModelMenu = useCallback(() => {
     return () => window.removeEventListener('mousedown', handler);
   }, [showModelMenu]);
 
+  useEffect(() => {
+    if (!showFileSelector) return;
+    function handler(e: MouseEvent) {
+      if (attachButtonRef.current && !attachButtonRef.current.contains(e.target as Node)) {
+        // check portal menu
+        const menu = document.querySelector('[data-file-selector-portal]');
+        if (menu && menu.contains(e.target as Node)) return;
+        setShowFileSelector(false);
+      }
+    }
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showFileSelector]);
+
   return (
     <AIPanelContainer className="ai-panel-root">
       <AIHeader>
@@ -2386,33 +2369,6 @@ const openModelMenu = useCallback(() => {
       </AIHeader>
 
       <AIMessages ref={messagesContainerRef} onScroll={handleMessagesScroll}>
-        {currentFile && (
-          <CurrentFileCard>
-            <FileHeader>
-              <FileName>
-                <Pin size={14} />
-                <FileText size={14} />
-                {currentFile.name}
-              </FileName>
-              <FileStatus>
-                <Eye size={10} />
-                Активный файл
-              </FileStatus>
-            </FileHeader>
-            <FileInfo>
-              <FileLanguage>{currentFile.language.toUpperCase()}</FileLanguage>
-              <span style={{ fontSize: '11px', color: '#6c757d' }}>
-                {currentFile.content.split('\n').length} строк
-              </span>
-            </FileInfo>
-            <FileContent>
-              {currentFile.content.length > 200 
-                ? `${currentFile.content.substring(0, 200)}...` 
-                : currentFile.content}
-            </FileContent>
-          </CurrentFileCard>
-        )}
-
         {attachedFiles.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
             <div style={{ fontSize: '12px', fontWeight: '600', color: '#6c757d', marginBottom: '8px' }}>
@@ -2456,23 +2412,6 @@ const openModelMenu = useCallback(() => {
             <Bot size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
             <p>Привет! Я ваш AI помощник для программирования.</p>
             <p>Задайте вопрос или выберите быстрый запрос ниже.</p>
-            {currentFile && (
-              <div style={{ 
-                marginTop: '16px', 
-                padding: '12px', 
-                backgroundColor: 'rgba(59, 130, 246, 0.1)', 
-                borderRadius: '8px',
-                border: '1px solid rgba(59, 130, 246, 0.2)'
-              }}>
-                <p style={{ fontSize: '13px', margin: '0 0 4px 0', fontWeight: '600' }}>
-                  📁 Файл закреплен для работы с AI
-                </p>
-                <p style={{ fontSize: '12px', margin: '0' }}>
-                  <strong>{currentFile.name}</strong> ({currentFile.language.toUpperCase()}) - 
-                  AI может анализировать и дополнять этот код
-                </p>
-              </div>
-            )}
           </div>
         )}
 
@@ -2697,6 +2636,13 @@ const openModelMenu = useCallback(() => {
               <Paperclip size={14} />
               <span>Файл</span>
             </AttachButton>
+            <input
+              ref={fileInputRef}
+              type="file"
+              style={{ display: 'none' }}
+              onChange={handleFileInputChange}
+              accept="*/*"
+            />
             <QuickActionMainButton
               onClick={() => setShowQuick(!showQuick)}
               title="Быстрые действия"
@@ -2752,17 +2698,38 @@ const openModelMenu = useCallback(() => {
             )}
             {showFileSelector && fileMenuCoords && ReactDOM.createPortal(
               <FileSelector
+                data-file-selector-portal
                 style={{
                   position: 'fixed',
                   left: fileMenuCoords.left,
-                  top: fileMenuCoords.top - 200, /* позиционируем над кнопкой */
+                  top: fileMenuCoords.top,
+                  transform: 'translateY(calc(-100% - 8px))', /* позиционируем над кнопкой с отступом 8px */
                   width: fileMenuCoords.width * 1.5,
                   minWidth: 200,
-                  maxHeight: 200,
+                  maxHeight: 300,
                   overflowY: 'auto',
                   zIndex: 2999,
                 }}
               >
+                <FileOption
+                  onClick={handleUploadFile}
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    fontWeight: '600',
+                    marginBottom: '4px'
+                  }}
+                >
+                  <span>📁</span>
+                  <span>Загрузить свой файл</span>
+                </FileOption>
+                {availableFiles.length > 0 && (
+                  <div style={{
+                    height: '1px',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    margin: '8px 0'
+                  }} />
+                )}
                 {availableFiles.map((file, index) => (
                   <FileOption
                     key={index}

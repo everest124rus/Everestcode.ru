@@ -58,12 +58,23 @@ interface SidebarProps {
 }
 
 const SidebarContainer = styled.div`
-  width: 250px;
+  width: 100%;
+  height: 100%;
   background-color: ${props => props.theme.colors.sidebar};
   border-right: 1px solid ${props => props.theme.colors.border};
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  overflow: hidden;
+<<<<<<< Current (Your changes)
+<<<<<<< Current (Your changes)
+=======
+  min-width: 0;
+  min-height: 0;
+>>>>>>> Incoming (Background Agent changes)
+=======
+  min-width: 0;
+  min-height: 0;
+>>>>>>> Incoming (Background Agent changes)
 `;
 
 const SidebarHeader = styled.div`
@@ -866,7 +877,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <span>Everest AI</span>
             <BetaBadge>Beta</BetaBadge>
           </LogoButton>
-          <VersionBadge>v0.0.2</VersionBadge>
+          <VersionBadge>0.0.3</VersionBadge>
         </div>
       </SidebarHeader>
 

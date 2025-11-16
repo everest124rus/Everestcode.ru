@@ -30,7 +30,11 @@ export interface CodeEditorRef {
 const EditorContainer = styled.div`
   height: 100%;
   width: 100%;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 `;
 
 const EditorHeader = styled.div`
