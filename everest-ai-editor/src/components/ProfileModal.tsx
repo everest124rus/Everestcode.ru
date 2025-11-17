@@ -177,8 +177,8 @@ const ModelsSection = styled.div`
 
 const ModelsList = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 12px;
 `;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -195,24 +195,37 @@ const ModelTag = styled.div<{ $color: string }>`
 const ModelItem = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  background-color: ${props => props.theme.colors.background};
-  border: 1px solid ${props => props.theme.colors.border};
+  align-items: flex-start;
+  border: 1px solid;
   border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 8px;
+  padding: 14px 16px;
+  width: 100%;
+  min-height: 60px;
+  gap: 16px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
 `;
 
 const ModelName = styled.div`
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: ${props => props.theme.colors.text};
+  flex: 0 0 auto;
+  min-width: 140px;
+  line-height: 1.4;
 `;
 
 const ModelCount = styled.div`
-  font-size: 12px;
+  font-size: 13px;
   color: ${props => props.theme.colors.textSecondary};
   text-align: right;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.5;
 `;
 
 interface ProfileModalProps {
@@ -518,23 +531,78 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
                 };
                 const displayName = modelNames[key] || model.name;
                 
+                // Определяем градиент в зависимости от типа модели
+                const getGradient = (modelKey: string) => {
+                  switch (modelKey) {
+                    case 'gigachat':
+                      // Lite - белый градиент
+                      return 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(240, 240, 240, 0.1) 100%)';
+                    case 'gigachat-2':
+                      // Pro - красный градиент
+                      return 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 50%, rgba(185, 28, 28, 0.1) 100%)';
+                    case 'gigachat-3':
+                      // Max - фиолетовый градиент
+                      return 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(147, 51, 234, 0.15) 50%, rgba(126, 34, 206, 0.1) 100%)';
+                    default:
+                      return 'rgba(255, 255, 255, 0.05)';
+                  }
+                };
+
+                const getBorderColor = (modelKey: string) => {
+                  switch (modelKey) {
+                    case 'gigachat':
+                      return 'rgba(255, 255, 255, 0.2)';
+                    case 'gigachat-2':
+                      return 'rgba(239, 68, 68, 0.3)';
+                    case 'gigachat-3':
+                      return 'rgba(168, 85, 247, 0.3)';
+                    default:
+                      return 'rgba(255, 255, 255, 0.1)';
+                  }
+                };
+
                 return (
-                  <ModelItem key={key}>
-                    <ModelName>{displayName}</ModelName>
-                    <ModelCount>
+                  <ModelItem 
+                    key={key}
+                    style={{
+                      background: getGradient(key),
+                      borderColor: getBorderColor(key),
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {/* Декоративный эффект перелива */}
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: key === 'gigachat' 
+                        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%)'
+                        : key === 'gigachat-2'
+                        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, transparent 50%)'
+                        : 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, transparent 50%)',
+                      pointerEvents: 'none',
+                      opacity: 0.6
+                    }} />
+                    <ModelName style={{ position: 'relative', zIndex: 1 }}>{displayName}</ModelName>
+                    <ModelCount style={{ position: 'relative', zIndex: 1 }}>
                       {model.unlimited ? (
-                        <span style={{ color: '#28a745' }}>∞ неограниченно</span>
+                        <div style={{ color: '#28a745', fontWeight: '500' }}>∞ неограниченно</div>
                       ) : (
-                        <span>
-                          {model.used} / {model.total} запросов
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <div style={{ fontWeight: '500' }}>
+                            {model.used} / {model.total} запросов
+                          </div>
                           <div style={{ 
                             fontSize: '12px', 
                             color: model.remaining > 0 ? '#28a745' : '#dc3545',
-                            marginTop: '2px'
+                            fontWeight: '400'
                           }}>
                             Осталось: {model.remaining}
                           </div>
-                        </span>
+                        </div>
                       )}
                     </ModelCount>
                   </ModelItem>
