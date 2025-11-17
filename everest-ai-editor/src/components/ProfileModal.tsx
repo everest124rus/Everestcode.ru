@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { X, User, Calendar, BarChart3, Crown, Upload, Save, Copy, Check, HelpCircle } from 'lucide-react';
@@ -294,25 +294,39 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showReferralTooltip, setShowReferralTooltip] = useState(false);
+  const isLoadingRef = useRef(false);
+  const lastFetchRef = useRef<number>(0);
 
   useEffect(() => {
     setUser(authUser);
   }, [authUser]);
 
   useEffect(() => {
-    if (isOpen && user) {
-      fetchUserStats();
+    // Защита от бесконечного цикла: проверяем, не загружаются ли данные уже
+    if (isOpen && user && token && !isLoadingRef.current) {
+      const now = Date.now();
+      // Защита от слишком частых запросов (минимум 1 секунда между запросами)
+      if (now - lastFetchRef.current > 1000) {
+        fetchUserStats();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, user]);
+  }, [isOpen, token]);
 
   const fetchUserStats = async () => {
     if (!token) {
-      console.warn('Нет токена для загрузки статистики');
       return;
     }
     
+    // Защита от параллельных запросов
+    if (isLoadingRef.current) {
+      return;
+    }
+    
+    isLoadingRef.current = true;
+    lastFetchRef.current = Date.now();
     setIsLoading(true);
+    
     try {
       // Загружаем профиль пользователя (включая referralCode)
       const profileResponse = await fetch(buildApiUrl('/user/profile'), {
@@ -334,24 +348,21 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
         headers: authHeaders(token)
       });
       
-      console.log('Ответы API:', {
-        profile: profileResponse.status,
-        stats: statsResponse.status,
-        limits: limitsResponse.status,
-        referrals: referralsResponse.status
-      });
-      
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
         if (profileData.user) {
+          // Обновляем только если данные действительно изменились
           setUser(prevUser => {
             const updatedUser = {
               ...prevUser,
               ...profileData.user
             };
-            // Обновляем localStorage
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            return updatedUser;
+            // Проверяем, изменились ли данные перед обновлением
+            if (JSON.stringify(prevUser) !== JSON.stringify(updatedUser)) {
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              return updatedUser;
+            }
+            return prevUser;
           });
         }
       }
@@ -370,11 +381,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       
       if (limitsResponse.ok) {
         const limitsData = await limitsResponse.json();
-        console.log('Лимиты загружены:', limitsData);
         setLimits(limitsData);
-      } else {
-        const errorData = await limitsResponse.json().catch(() => ({ error: 'Неизвестная ошибка' }));
-        console.error('Ошибка загрузки лимитов:', limitsResponse.status, errorData);
       }
       
       if (referralsResponse.ok) {
@@ -385,6 +392,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       console.error('Ошибка загрузки статистики:', error);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   };
 

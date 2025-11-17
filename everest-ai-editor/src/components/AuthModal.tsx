@@ -116,7 +116,7 @@ const SuccessMessage = styled.div`
 `;
 
 const Divider = styled.div`
-  display: flex; align-items: center; margin: 24px 0; color: #999;
+  display: flex; align-items: center; margin: 24px 0; color: #fff;
   font-size: 14px;
   &::before, &::after { content: ''; flex: 1; height: 1px; background: #444; }
   &::before { margin-right: 16px; } &::after { margin-left: 16px; }
@@ -299,25 +299,40 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
         {mode !== 'telegram' && (
           <>
             <ModeToggle>
-              <ModeButton $active={mode === 'login'} onClick={() => setMode('login')}>Вход</ModeButton>
-              <ModeButton $active={mode === 'register'} onClick={() => setMode('register')}>Регистрация</ModeButton>
+              <ModeButton $active={mode === 'login'} onClick={() => {
+                setMode('login');
+                setError(''); // Очищаем ошибку при переключении режима
+              }}>Вход</ModeButton>
+              <ModeButton $active={mode === 'register'} onClick={() => {
+                setMode('register');
+                setError(''); // Очищаем ошибку при переключении режима
+              }}>Регистрация</ModeButton>
             </ModeToggle>
 
             <Form onSubmit={handleSubmit}>
           {mode === 'register' && (
             <InputGroup>
               <Label htmlFor="username">Имя пользователя</Label>
-              <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Имя пользователя" required />
+              <Input id="username" type="text" value={username} onChange={(e) => {
+                setUsername(e.target.value);
+                setError(''); // Очищаем ошибку при изменении поля
+              }} placeholder="Имя пользователя" required />
             </InputGroup>
           )}
           <InputGroup>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+            <Input id="email" type="email" value={email} onChange={(e) => {
+              setEmail(e.target.value);
+              setError(''); // Очищаем ошибку при изменении email
+            }} placeholder="Email" required />
           </InputGroup>
           <InputGroup>
             <Label htmlFor="password">Пароль</Label>
             <PasswordInput>
-              <Input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" required />
+              <Input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => {
+                setPassword(e.target.value);
+                setError(''); // Очищаем ошибку при изменении пароля
+              }} placeholder="Пароль" required />
               <PasswordToggle type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</PasswordToggle>
             </PasswordInput>
           </InputGroup>
@@ -328,7 +343,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
                 id="referralCode" 
                 type="text" 
                 value={referralCode} 
-                onChange={(e) => setReferralCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} 
+                onChange={(e) => {
+                  setReferralCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+                  setError(''); // Очищаем ошибку при изменении реферального кода
+                }} 
                 placeholder="Введите реферальный код" 
                 maxLength={8}
                 style={{ textTransform: 'uppercase', fontFamily: 'monospace', letterSpacing: '2px' }}

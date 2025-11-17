@@ -2007,7 +2007,6 @@ app.get('/api/user/limits', async (req, res) => {
       }
     };
 
-    console.log('Отправка лимитов пользователю:', userId, limits);
     res.json(limits);
   } catch (error) {
     console.error('Ошибка получения лимитов:', error);
