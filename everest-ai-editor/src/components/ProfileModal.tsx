@@ -294,7 +294,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   }, [isOpen, user]);
 
   const fetchUserStats = async () => {
-    if (!token) return;
+    if (!token) {
+      console.warn('Нет токена для загрузки статистики');
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -316,6 +319,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       // Загружаем список рефералов
       const referralsResponse = await fetch(buildApiUrl('/user/referrals'), {
         headers: authHeaders(token)
+      });
+      
+      console.log('Ответы API:', {
+        profile: profileResponse.status,
+        stats: statsResponse.status,
+        limits: limitsResponse.status,
+        referrals: referralsResponse.status
       });
       
       if (profileResponse.ok) {
@@ -347,7 +357,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
       
       if (limitsResponse.ok) {
         const limitsData = await limitsResponse.json();
+        console.log('Лимиты загружены:', limitsData);
         setLimits(limitsData);
+      } else {
+        const errorData = await limitsResponse.json().catch(() => ({ error: 'Неизвестная ошибка' }));
+        console.error('Ошибка загрузки лимитов:', limitsResponse.status, errorData);
       }
       
       if (referralsResponse.ok) {

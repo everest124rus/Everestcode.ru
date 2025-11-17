@@ -20,8 +20,8 @@ model User {
   phoneNumber     String?
   role            String         @default("user")
   hasSubscription Boolean        @default(false)
-  tokensType1     Int            @default(10)
-  tokensType2     Int            @default(100)
+  tokensType1     Int            @default(20)
+  tokensType2     Int            @default(5)
   tokensType3     Int            @default(0)
   usedTokensType1 Int            @default(0)
   usedTokensType2 Int            @default(0)

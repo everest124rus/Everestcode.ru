@@ -251,25 +251,38 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 'l
     setIsLoading(true);
     setError('');
     try {
-      const successResult = mode === 'login' ? await login(email, password) : await register(email, password, username, referralCode || undefined);
-      if (successResult) {
-        setSuccess(mode === 'login' ? 'Вход успешен!' : 'Регистрация успешна!');
-        // Фиксация цели Яндекс.Метрики для логина/регистрации
-        try {
-          const { trackGoal, YM_EVENTS } = await import('../utils/yandexMetrika');
-          if (mode === 'register') {
-            trackGoal(YM_EVENTS.AUTH_REGISTER); // Регистрация нового пользователя
-          } else {
-            trackGoal(YM_EVENTS.AUTH_LOGIN); // Вход существующего пользователя
-          }
-        } catch (e) {
-          console.error('Error tracking auth goal:', e);
+      let successResult;
+      if (mode === 'login') {
+        successResult = await login(email, password);
+        if (!successResult) {
+          setError('Неверный email или пароль');
+          setIsLoading(false);
+          return;
         }
-        setTimeout(() => {
-          onClose();
-          setEmail(''); setPassword(''); setUsername(''); setReferralCode('');
-        }, 1500);
+      } else {
+        const registerResult = await register(email, password, username, referralCode || undefined);
+        if (registerResult !== true) {
+          setError(registerResult as string);
+          setIsLoading(false);
+          return;
+        }
       }
+      setSuccess(mode === 'login' ? 'Вход успешен!' : 'Регистрация успешна!');
+      // Фиксация цели Яндекс.Метрики для логина/регистрации
+      try {
+        const { trackGoal, YM_EVENTS } = await import('../utils/yandexMetrika');
+        if (mode === 'register') {
+          trackGoal(YM_EVENTS.AUTH_REGISTER); // Регистрация нового пользователя
+        } else {
+          trackGoal(YM_EVENTS.AUTH_LOGIN); // Вход существующего пользователя
+        }
+      } catch (e) {
+        console.error('Error tracking auth goal:', e);
+      }
+      setTimeout(() => {
+        onClose();
+        setEmail(''); setPassword(''); setUsername(''); setReferralCode('');
+      }, 1500);
     } catch (err: any) {
       setError(err.message || 'Произошла ошибка');
     } finally {

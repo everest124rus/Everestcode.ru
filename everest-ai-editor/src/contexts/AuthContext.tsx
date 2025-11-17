@@ -20,7 +20,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, username: string, referralCode?: string) => Promise<boolean>;
+  register: (email: string, password: string, username: string, referralCode?: string) => Promise<string | true>;
   loginWithTelegram: (token: string, user: any) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (email: string, password: string, username: string, referralCode?: string): Promise<boolean> => {
+  const register = async (email: string, password: string, username: string, referralCode?: string): Promise<string | true> => {
     try {
       const response = await fetch(buildApiUrl('/auth/register'), {
         method: 'POST',
@@ -98,7 +98,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         },
         body: JSON.stringify({ email, password, username, referralCode: referralCode || undefined }),
       });
-
       const data = await response.json();
 
       if (response.ok) {
@@ -107,11 +106,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('token', data.token);
         return true;
       } else {
-        throw new Error(data.error || 'Registration failed');
+        return data.error || 'Ошибка регистрации';
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      return false;
+      return 'Ошибка соединения с сервером';
     }
   };
 
