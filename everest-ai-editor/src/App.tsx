@@ -561,6 +561,17 @@ const WebCodePage = () => {
   const [conversations, setConversations] = useState<Array<{id: number, title?: string, messages?: any[]}>>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
   
+  const [allProjectFiles, setAllProjectFiles] = useState([]);
+  useEffect(() => {
+    fetch('/api/files/list').then(r => r.json()).then(setAllProjectFiles).catch(() => setAllProjectFiles([]));
+  }, []);
+
+  async function readFileByPath(path: string): Promise<string> {
+    const res = await fetch('/api/files/read?path=' + encodeURIComponent(path));
+    const { content } = await res.json();
+    return content || '';
+  }
+  
   // Ref для доступа к методам редактора кода
   const codeEditorRef = useRef<CodeEditorRef>(null);
 
@@ -578,7 +589,7 @@ const WebCodePage = () => {
           if (Object.keys(prevFiles).length === 0) {
             const initialPath = 'start.txt';
             // Файл создается с нейтральным содержимым, БЕЗ текста запроса пользователя
-            const fileContent = '# Начните работу\n\nСоздайте файлы или начните общение с ИИ ассистентом.';
+            const fileContent = '# Начните работу\n\nСоздайте файлы или начните общение с ИИ ассистентом.\n\nНаписано с любовью в EverestCode.ru';
             
             return { [initialPath]: fileContent };
           }
@@ -1140,6 +1151,8 @@ const WebCodePage = () => {
                 onDeleteConversation={deleteConversation}
                 onRenameConversation={renameConversation}
                 onStopGeneration={handleStopGeneration}
+                allFiles={allProjectFiles}
+                onReadFile={readFileByPath}
               />
             </PanelWrapper>
           </Panel>

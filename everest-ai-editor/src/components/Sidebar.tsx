@@ -878,7 +878,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <span>Everest AI</span>
             <BetaBadge>Beta</BetaBadge>
           </LogoButton>
-          <VersionBadge>0.0.3</VersionBadge>
+          <VersionBadge>0.0.4</VersionBadge>
         </div>
       </SidebarHeader>
 

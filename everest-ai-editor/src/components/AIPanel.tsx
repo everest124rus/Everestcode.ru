@@ -60,6 +60,8 @@ interface AIPanelProps {
   onDeleteConversation?: (id: number) => void;
   onRenameConversation?: (id: number, title: string) => void;
   onStopGeneration?: () => void;
+  allFiles?: Array<{ name: string; path: string; isDirectory: boolean }>;
+  onReadFile?: (path: string) => Promise<string>;
 }
 
 const AIPanelContainer = styled.div`
@@ -70,16 +72,8 @@ const AIPanelContainer = styled.div`
   background-color: ${props => props.theme.colors.aiPanel};
   border-left: 1px solid ${props => props.theme.colors.border};
   overflow: hidden;
-<<<<<<< Current (Your changes)
-<<<<<<< Current (Your changes)
-=======
   min-width: 0;
   min-height: 0;
->>>>>>> Incoming (Background Agent changes)
-=======
-  min-width: 0;
-  min-height: 0;
->>>>>>> Incoming (Background Agent changes)
 `;
 
 const AIHeader = styled.div`
@@ -1532,7 +1526,7 @@ const formatMessageTime = (timestamp?: number): string => {
   return `${day}.${month}.${year} ${hours}:${minutes}`;
 };
 
-const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile, onInsertCode, availableFiles = [], onFilesAdd, conversations = [], currentConversationId = null, onNewConversation, onSelectConversation, onDeleteConversation, onRenameConversation, onStopGeneration }) => {
+const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile, onInsertCode, availableFiles = [], onFilesAdd, conversations = [], currentConversationId = null, onNewConversation, onSelectConversation, onDeleteConversation, onRenameConversation, onStopGeneration, allFiles = [], onReadFile }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<'gigachat' | 'chatgpt'>('gigachat');
   const [attachedFiles, setAttachedFiles] = useState<Array<{name: string, content: string, language: string}>>([]);
@@ -1565,12 +1559,15 @@ const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile,
   const autoFollowRef = useRef<boolean>(true);
   useEffect(() => { autoFollowRef.current = autoFollow; }, [autoFollow]);
 
-  const scrollToBottom = () => {
+  // ... внутри AIPanel, добавить состояние:
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  const scrollToBottom = (smooth = true) => {
     const container = messagesContainerRef.current;
     if (container) {
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      container.scrollTo({ top: container.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
     } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
     }
   };
 
@@ -1583,6 +1580,7 @@ const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile,
 
   const handleMessagesScroll = useCallback(() => {
     const nearBottom = isNearBottom();
+    setShowScrollToBottom(!nearBottom);
     // Если пользователь листает вверх во время ответа — перестаем авто‑следовать до окончания ответа
     if (isGenerating) {
       if (!nearBottom) {
@@ -1745,13 +1743,37 @@ const AIPanel: React.FC<AIPanelProps> = ({ messages, onSendMessage, currentFile,
         'GigaChat Max': 'GigaChat-2-Max',
       };
       const modelName = modelMap[selectedModel] || 'GigaChat-2-Pro';
-      onSendMessage(message, selectedProvider + ':' + modelName, abortController);
+      
+      // внутри handleSend (AI)
+      let context = '';
+      if (Array.isArray(allFiles) && typeof onReadFile === 'function') {
+        // ищем имя файла по точному совпадению (case-insensitive)
+        const lowerPrompt = message.toLowerCase();
+        const file = allFiles.find(f => !f.isDirectory && lowerPrompt.includes(f.name.toLowerCase()));
+        if (file) {
+          try {
+            const fileContent = await onReadFile(file.path);
+            if (fileContent && fileContent.length < 40000) { // защита от гигантских файлов
+              context += `Вот содержимое файла ${file.name}:\n\n` + fileContent + '\n\n';
+            }
+          } catch {}
+        }
+      }
+      const fullPrompt = context + message;
+      onSendMessage(fullPrompt, selectedProvider + ':' + modelName, abortController);
+      const wasNearBottom = isNearBottom();
+      if (wasNearBottom) {
+        setTimeout(() => scrollToBottom(true), 1);
+        setShowScrollToBottom(false);
+      } else {
+        setShowScrollToBottom(true);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [isLoading, isGenerating, selectedModel, selectedProvider, onSendMessage]);
+  }, [isLoading, isGenerating, selectedModel, selectedProvider, onSendMessage, allFiles, onReadFile, isNearBottom]);
 
   const wasManuallyStoppedRef = useRef(false);
   const handleStop = useCallback(() => {
@@ -2368,7 +2390,7 @@ const openModelMenu = useCallback(() => {
         </HeaderRight>
       </AIHeader>
 
-      <AIMessages ref={messagesContainerRef} onScroll={handleMessagesScroll}>
+      <AIMessages ref={messagesContainerRef} onScroll={handleMessagesScroll} style={{ position: 'relative' }}>
         {attachedFiles.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
             <div style={{ fontSize: '12px', fontWeight: '600', color: '#6c757d', marginBottom: '8px' }}>
@@ -2758,6 +2780,35 @@ const openModelMenu = useCallback(() => {
         isOpen={showDeveloperContact}
         onClose={() => setShowDeveloperContact(false)}
       />
+      {allFiles.length > 0 && (
+        <div style={{ background: 'rgba(30,30,30,0.10)', border: '1px solid #333', padding: 8, marginBottom: 8, fontSize: 12, maxHeight: 100, overflowY: 'auto', borderRadius: 8 }}>
+          <b>Файлы проекта видимые ассистенту:</b>
+          <ul style={{ margin: 3 }}>
+            {allFiles.map(f => <li key={f.name}>{f.isDirectory ? '📁' : '📄'} {f.name}</li>)}
+          </ul>
+        </div>
+      )}
+      {showScrollToBottom && (
+        <button
+          style={{
+            position: 'absolute',
+            right: 24,
+            bottom: 22,
+            zIndex: 20,
+            background: '#2a95ef',
+            color: '#fff',
+            padding: '9px 15px',
+            borderRadius: '20px',
+            boxShadow: '0 4px 32px rgba(42,149,239,0.09)',
+            border: 0,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontSize: 14,
+            opacity: 0.94,
+          }}
+          onClick={() => { scrollToBottom(true); setShowScrollToBottom(false); }}
+        >В конец ⬇️</button>
+      )}
     </AIPanelContainer>
   );
 };

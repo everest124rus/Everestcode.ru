@@ -13,6 +13,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const TelegramBotService = require('./telegram-bot');
+const fsPromises = require('fs/promises');
 
 const app = express();
 const server = http.createServer(app);
@@ -2889,6 +2890,48 @@ process.on('SIGINT', async () => {
     console.log('🛑 Сервер остановлен');
     process.exit(0);
   });
+});
+
+const BASE_DIR = path.join(__dirname); // everest-ai-editor
+const IGNORED = ['node_modules', 'build', '.git', '.next', '.DS_Store', '.cache'];
+
+async function walk(dir, base = '') {
+  const list = await fsPromises.readdir(dir, { withFileTypes: true });
+  let results = [];
+  for (const entry of list) {
+    if (IGNORED.includes(entry.name) || entry.name.startsWith('.')) continue;
+    const rel = path.join(base, entry.name);
+    if (entry.isDirectory()) {
+      results.push({ name: entry.name, path: rel, isDirectory: true });
+      results = results.concat(await walk(path.join(dir, entry.name), rel));
+    } else {
+      results.push({ name: entry.name, path: rel, isDirectory: false });
+    }
+  }
+  return results;
+}
+
+app.get('/api/files/list', async (req, res) => {
+  try {
+    const files = await walk(BASE_DIR);
+    res.json(files);
+  } catch (e) {
+    res.status(500).json({ error: e+'' });
+  }
+});
+
+app.get('/api/files/read', async (req, res) => {
+  try {
+    const relPath = req.query.path;
+    if (!relPath || relPath.includes('..')) return res.status(400).json({ error: 'Bad path' });
+    const absPath = path.join(BASE_DIR, relPath);
+    const stat = await fsPromises.stat(absPath);
+    if (stat.isDirectory()) return res.status(400).json({ error: 'Is directory' });
+    const content = await fsPromises.readFile(absPath, 'utf8');
+    res.json({ content });
+  } catch (e) {
+    res.status(500).json({ error: e+'' });
+  }
 });
 
 startServer();
