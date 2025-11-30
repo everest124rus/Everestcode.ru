@@ -65,16 +65,8 @@ const SidebarContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-<<<<<<< Current (Your changes)
-<<<<<<< Current (Your changes)
-=======
   min-width: 0;
   min-height: 0;
->>>>>>> Incoming (Background Agent changes)
-=======
-  min-width: 0;
-  min-height: 0;
->>>>>>> Incoming (Background Agent changes)
 `;
 
 const SidebarHeader = styled.div`
@@ -855,21 +847,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     });
   }
 
-  useEffect(() => {
-    // Рендерим Yandex RTB только в production (не на localhost)
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (!isLocalhost && window.yaContextCb) {
-      window.yaContextCb.push(() => {
-        if (window.Ya && window.Ya.Context && window.Ya.Context.AdvManager) {
-          window.Ya.Context.AdvManager.render({
-            blockId: 'R-A-17622869-2',
-            renderTo: 'yandex_rtb_R-A-17622869-2'
-          });
-        }
-      });
-    }
-  }, []);
-
   return (
     <SidebarContainer className="sidebar-root">
       <SidebarHeader>
@@ -1057,20 +1034,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     {dragOverError}
   </div>
 )}
-      {/* Добавляем рекламный блок Яндекс RTB только в production */}
-      {(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') && (
-        <div
-          id="yandex_rtb_R-A-17622869-2"
-          style={{
-            width: '250px', // ширина как у sidebar
-            height: '240px', // под 6 иконок файлов
-            margin: '20px auto 0 auto',
-            borderRadius: '10px',
-            overflow: 'hidden',
-            background: '#181820'
-          }}
-        />
-      )}
+      <div style={{padding: '16px 6px 10px 6px', background: 'rgba(10,12,23,0.84)', color: '#fff', textAlign: 'center', fontSize: '12px', lineHeight: 1.7, borderTop: '1px solid #242537', margin: '0 -2px 0 -2px', borderRadius: '0 0 14px 14px', fontWeight: 400}}>
+        <b>ИП Пузырёв Ф.А.</b><br/>
+        Индивидуальный предприниматель Пузырев Фёдор Александрович<br/>
+        ОГРНИП: 324246800149350 | ИНН: 240403456118<br/>
+        Email: <a href="mailto:everest124rus@mail.ru" style={{color: '#90e1ff'}}>everest124rus@mail.ru</a><br/>
+        Рег. номер оператора по обработке ПДн № 100034113.<br/>
+        2024 - 2025
+      </div>
     </SidebarContainer>
   );
 };

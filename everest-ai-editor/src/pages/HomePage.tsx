@@ -5,9 +5,7 @@ import { buildApiUrl, authHeaders } from '../config/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const HomeContainer = styled.div<{ theme: 'light' | 'dark' }>`
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100vw;
   height: 100vh;
   background: ${props => props.theme === 'light' 
@@ -207,124 +205,104 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <HomeContainer theme={welcomeTheme}>
-      <ThemeToggle onClick={toggleTheme}>
-        {welcomeTheme === 'light' ? '🌙' : '☀️'} {welcomeTheme === 'light' ? 'Темная тема' : 'Светлая тема'}
-      </ThemeToggle>
-      
-      <Title>Everest Code</Title>
-      <Subtitle>Современный веб-редактор с поддержкой ИИ</Subtitle>
-      
-      <ButtonGroup>
-        <ActionButton onClick={handleStartCoding}>
-          🚀 Начать программировать
-        </ActionButton>
-        <ActionButton onClick={handleFileSharing}>
-          📤 Отправить файлы в Telegram
-        </ActionButton>
-        <ActionButton onClick={handleLearnMore}>
-          📚 Узнать больше
-        </ActionButton>
-      </ButtonGroup>
-
-      {isIdeaOpen && (
-        <GlassBackdrop onClick={() => !isSubmitting && setIsIdeaOpen(false)}>
-          <GlassModal onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Какую идею хотите воплотить?</ModalTitle>
-            <ModalSubtitle>
-              Мы подготовим стартовые рекомендации с помощью GigaChat Lite.
-            </ModalSubtitle>
-            <IdeaInput
-              placeholder="Опишите кратко задачу или идею проекта..."
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
-            />
-            {submitError && (
-              <div style={{ color: '#ff6b6b', marginTop: 8 }}>{submitError}</div>
-            )}
-            <ModalActions>
-              <SecondaryButton onClick={() => setIsIdeaOpen(false)} disabled={isSubmitting}>Отмена</SecondaryButton>
-              <PrimaryButton
-                disabled={!idea.trim() || isSubmitting}
-                onClick={async () => {
-                  if (!idea.trim()) return;
-                  setIsSubmitting(true);
-                  setSubmitError(null);
-                  try {
-                    // Сохраним будущий диалог в localStorage, чтобы он показался в AI панели
-                    const initMessages = [
-                      { role: 'user', content: idea.trim() }
-                    ];
-
-                    const headers = authHeaders(token || undefined);
-                    const res = await fetch(buildApiUrl('/ai/chat'), {
-                      method: 'POST',
-                      headers,
-                      body: JSON.stringify({ message: idea.trim(), provider: 'GigaChat-2' })
-                    });
-
-                    if (res.ok) {
-                      const data = await res.json();
-                      // Проверяем, что ответ действительно есть
-                      if (data.response && data.response.trim()) {
-                        const withAssistant = initMessages.concat([{ role: 'assistant', content: data.response }]);
-                        localStorage.setItem('aiMessages', JSON.stringify(withAssistant));
-                      } else {
-                        // Если ответ пустой, сохраняем сообщение об ошибке
-                        const withError = initMessages.concat([{ 
-                          role: 'assistant', 
-                          content: '⚠️ ИИ не вернул ответ. Попробуйте отправить сообщение еще раз в редакторе или обратитесь к разработчику: @everestalpine' 
-                        }]);
-                        localStorage.setItem('aiMessages', JSON.stringify(withError));
-                      }
-                    } else {
-                      // Если не ок, получаем текст ошибки
-                      let errorMessage = 'Не удалось получить ответ от ИИ. Попробуйте отправить сообщение еще раз в редакторе.';
+    <>
+      <HomeContainer theme={welcomeTheme}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', marginTop:'18vh' }}>
+          <ThemeToggle onClick={toggleTheme}>
+            {welcomeTheme === 'light' ? '🌙' : '☀️'} {welcomeTheme === 'light' ? 'Темная тема' : 'Светлая тема'}
+          </ThemeToggle>
+          <Title>Everest Code</Title>
+          <Subtitle>Современный веб-редактор с поддержкой ИИ</Subtitle>
+          <ButtonGroup>
+            <ActionButton onClick={handleStartCoding}>🚀 Начать программировать</ActionButton>
+            <ActionButton onClick={handleFileSharing}>📤 Отправить файлы в Telegram</ActionButton>
+            <ActionButton onClick={handleLearnMore}>📚 Узнать больше</ActionButton>
+          </ButtonGroup>
+          {isIdeaOpen && (
+            <GlassBackdrop onClick={() => !isSubmitting && setIsIdeaOpen(false)}>
+              <GlassModal onClick={(e) => e.stopPropagation()}>
+                <ModalTitle>Какую идею хотите воплотить?</ModalTitle>
+                <ModalSubtitle>Мы подготовим стартовые рекомендации с помощью GigaChat Lite.</ModalSubtitle>
+                <IdeaInput placeholder="Опишите кратко задачу или идею проекта..." value={idea} onChange={(e) => setIdea(e.target.value)} />
+                {submitError && (<div style={{ color: '#ff6b6b', marginTop: 8 }}>{submitError}</div>)}
+                <ModalActions>
+                  <SecondaryButton onClick={() => setIsIdeaOpen(false)} disabled={isSubmitting}>Отмена</SecondaryButton>
+                  <PrimaryButton
+                    disabled={!idea.trim() || isSubmitting}
+                    onClick={async () => {
+                      if (!idea.trim()) return;
+                      setIsSubmitting(true);
+                      setSubmitError(null);
                       try {
-                        const errorData = await res.json();
-                        if (errorData.error) {
-                          errorMessage = `Ошибка: ${errorData.error}`;
+                        // Сохраним будущий диалог в localStorage, чтобы он показался в AI панели
+                        const initMessages = [ { role: 'user', content: idea.trim() } ];
+                        const headers = authHeaders(token || undefined);
+                        const res = await fetch(buildApiUrl('/ai/chat'), { method: 'POST', headers, body: JSON.stringify({ message: idea.trim(), provider: 'GigaChat-2' }) });
+                        if (res.ok) {
+                          const data = await res.json();
+                          // Проверяем, что ответ действительно есть
+                          if (data.response && data.response.trim()) {
+                            const withAssistant = initMessages.concat([{ role: 'assistant', content: data.response }]);
+                            localStorage.setItem('aiMessages', JSON.stringify(withAssistant));
+                          } else {
+                            // Если ответ пустой, сохраняем сообщение об ошибке
+                            const withError = initMessages.concat([{ role: 'assistant', content: '⚠️ ИИ не вернул ответ. Попробуйте отправить сообщение еще раз в редакторе или обратитесь к разработчику: @everestalpine' }]);
+                            localStorage.setItem('aiMessages', JSON.stringify(withError));
+                          }
+                        } else {
+                          // Если не ок, получаем текст ошибки
+                          let errorMessage = 'Не удалось получить ответ от ИИ. Попробуйте отправить сообщение еще раз в редакторе.';
+                          try {
+                            const errorData = await res.json();
+                            if (errorData.error) {
+                              errorMessage = `Ошибка: ${errorData.error}`;
+                            }
+                          } catch (e) {
+                            // Игнорируем ошибку парсинга
+                          }
+                          // Сохраняем сообщение пользователя и сообщение об ошибке от ассистента
+                          const withError = initMessages.concat([{ role: 'assistant', content: `⚠️ ${errorMessage}\n\nПопробуйте отправить сообщение еще раз в редакторе или обратитесь к разработчику: @everestalpine` }]);
+                          localStorage.setItem('aiMessages', JSON.stringify(withError));
+                          console.warn('AI request failed:', errorMessage);
                         }
-                      } catch (e) {
-                        // Игнорируем ошибку парсинга
+                        setIsIdeaOpen(false);
+                        navigate('/webcode');
+                      } catch (err: any) {
+                        // При ошибке сети тоже сохраняем сообщение пользователя с уведомлением об ошибке
+                        const initMessages = [
+                          { role: 'user', content: idea.trim() },
+                          { role: 'assistant', content: `⚠️ Произошла ошибка при отправке сообщения: ${err.message || 'Неизвестная ошибка'}\n\nПопробуйте отправить сообщение еще раз в редакторе или обратитесь к разработчику: @everestalpine` }
+                        ];
+                        localStorage.setItem('aiMessages', JSON.stringify(initMessages));
+                        setSubmitError('Не удалось отправить идею. Попробуйте еще раз.');
+                        // Все равно переходим в редактор, чтобы пользователь мог попробовать еще раз
+                        setIsIdeaOpen(false);
+                        navigate('/webcode');
+                      } finally {
+                        setIsSubmitting(false);
                       }
-                      // Сохраняем сообщение пользователя и сообщение об ошибке от ассистента
-                      const withError = initMessages.concat([{ 
-                        role: 'assistant', 
-                        content: `⚠️ ${errorMessage}\n\nПопробуйте отправить сообщение еще раз в редакторе или обратитесь к разработчику: @everestalpine` 
-                      }]);
-                      localStorage.setItem('aiMessages', JSON.stringify(withError));
-                      console.warn('AI request failed:', errorMessage);
-                    }
-
-                    setIsIdeaOpen(false);
-                    navigate('/webcode');
-                  } catch (err: any) {
-                    // При ошибке сети тоже сохраняем сообщение пользователя с уведомлением об ошибке
-                    const initMessages = [
-                      { role: 'user', content: idea.trim() },
-                      { 
-                        role: 'assistant', 
-                        content: `⚠️ Произошла ошибка при отправке сообщения: ${err.message || 'Неизвестная ошибка'}\n\nПопробуйте отправить сообщение еще раз в редакторе или обратитесь к разработчику: @everestalpine` 
-                      }
-                    ];
-                    localStorage.setItem('aiMessages', JSON.stringify(initMessages));
-                    setSubmitError('Не удалось отправить идею. Попробуйте еще раз.');
-                    // Все равно переходим в редактор, чтобы пользователь мог попробовать еще раз
-                    setIsIdeaOpen(false);
-                    navigate('/webcode');
-                  } finally {
-                    setIsSubmitting(false);
-                  }
-                }}
-              >
-                {isSubmitting ? 'Отправляем…' : 'Отправить'}
-              </PrimaryButton>
-            </ModalActions>
-          </GlassModal>
-        </GlassBackdrop>
-      )}
-    </HomeContainer>
+                    }}
+                  >
+                    {isSubmitting ? 'Отправляем…' : 'Отправить'}
+                  </PrimaryButton>
+                </ModalActions>
+              </GlassModal>
+            </GlassBackdrop>
+          )}
+        </div>
+        <footer style={{marginTop: 'auto', width: '100%', background: 'rgba(10,12,23,0.84)', color: '#fff', textAlign: 'center', fontSize: '13px', lineHeight: 1.8, borderTop: '1px solid #272940', letterSpacing: '0.01em', fontWeight: 400}}>
+          <div>
+            <div style={{fontWeight:600, fontSize:'15px', marginBottom: '4px'}}>Реквизиты</div>
+            <b>ИП Пузырёв Ф.А.</b><br/>
+            Индивидуальный предприниматель Пузырев Фёдор Александрович<br/>
+            ОГРНИП: 324246800149350 | ИНН: 240403456118<br/>
+            Email: <a href="mailto:everest124rus@mail.ru" style={{color: '#90e1ff'}}>everest124rus@mail.ru</a><br/>
+            Рег. номер оператора по обработке ПДн № 100034113.<br/>
+            2024 - 2025
+          </div>
+        </footer>
+      </HomeContainer>
+    </>
   );
 };
 

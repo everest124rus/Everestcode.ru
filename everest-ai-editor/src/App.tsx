@@ -515,6 +515,15 @@ const HomePage = () => {
                   Понятно
                 </button>
               </div>
+              <div style={{margin: '18px auto 0', maxWidth: 480, background: 'rgba(18,20,28,0.87)', color: '#fff', textAlign: 'center', fontSize: '12.5px', lineHeight: 1.7, borderRadius: '10px', padding: '13px 9px 11px 9px', fontWeight: 400}}>
+  <div style={{fontWeight:600, fontSize:'13px', marginBottom: '2px'}}>Реквизиты</div>
+  <b>ИП Пузырёв Ф.А.</b><br/>
+  Индивидуальный предприниматель Пузырев Фёдор Александрович<br/>
+  ОГРНИП: 324246800149350 | ИНН: 240403456118<br/>
+  Email: <a href="mailto:everest124rus@mail.ru" style={{color: '#90e1ff'}}>everest124rus@mail.ru</a><br/>
+  Рег. номер оператора по обработке ПДн № 100034113.<br/>
+  2024 - 2025
+</div>
             </div>
           </div>
         )}
